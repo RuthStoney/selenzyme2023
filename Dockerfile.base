@@ -1,0 +1,31 @@
+# Docker file that installs docker container for Selenzyme
+#
+# build with: "docker build -t sbc/selenzybase -f Dockerfile.base2 ."    anaconda3:5.0.1
+
+# interactive run 
+# --expose 5001 enables the website to be seen outsite the docker container and -P links 5001 to the flask app
+#    DIR=$(cd "$(dirname "$0")"; pwd)
+#    sudo docker run -i --expose 5001 -P -v "$DIR/selenzyme2:/selenzyme2" -t sbc/selenzybase  bash
+#    cd selenzyme2      
+#    python selenzyPro/flaskform.py -uploaddir selenzyPro/uploads -datadir selenzyPro/data -logdir selenzyPro/log
+# in another tab docker ps
+
+# conda env export > miniconda.yml
+# install sqlite3 
+
+#RUN pip install --upgrade pip
+FROM continuumio/miniconda3:4.10.3
+RUN conda update -n base conda
+
+RUN conda install -c conda-forge python=3.6.6 \
+  && conda install pip \
+  && conda install -c bioconda emboss=6.5.7 \
+  && conda install -c rdkit rdkit=2020.03.3.0 \
+  && conda install -c conda-forge biopython=1.76 \ 
+  && conda install -c biobuilds t-coffee=11.00 \
+  && conda install -c conda-forge flask-restful=0.3.6 \
+  && conda install -c conda-forge func_timeout=4.3.5 \
+  && pip install rxnmapper
+
+
+
