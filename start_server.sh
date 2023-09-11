@@ -10,12 +10,17 @@ echo "\n     COPYING selenzyme2 code"
 cp -rp gitcode2023/* selenzyme2
 
 echo "\n     COPYING selenzyme2 data"
-echo "unzip data? linux:1, NA:0"
+echo "unzip data into data_2023? yes:1, no:0"
 read unzip_fun
 if [ $unzip_fun == 1 ]
 then
-	echo "unzipping data_2023.tar.xz"
-	tar -xf compressed_data/data_2023.tar.xz
+	sudo rm -rf data_2023
+	echo "unzipping data_2023.zip"
+	unzip compressed_data/data_2023.zip
+
+	echo "unzipping seqs.zip"
+	unzip compressed_data/seqs.zip -d data_2023
+	# tar -xf compressed_data/data_2023.tar.xz
 fi
 
 mkdir -p selenzyme2/selenzyPro/data

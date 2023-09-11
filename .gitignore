@@ -1,2 +1,5 @@
 selenzyme2/
 data_2023/
+.git.bfg-report/
+pw.txt
+bfg-1.14.0.jar
