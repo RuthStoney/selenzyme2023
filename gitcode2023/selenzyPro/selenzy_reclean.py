@@ -18,14 +18,9 @@ Created on Tue Feb  7 10:53:03 2017
 
 import re
 import os, subprocess
-# import json
 import csv
 import argparse
-#import quickRsim
-#import quickRsim_mod3 as quickRsim
-#import quickRsim_mod7 as quickRsim
 import quickRsim_local2 as quickRsim
-# import quickRsim_local3 as quickRsim
 import numpy as np
 import pandas as pd
 from rdkit.Chem import AllChem, Draw
@@ -63,9 +58,6 @@ class preLoad(object):
         self.fpr = {}    
         for fpid in quickRsim.fingerprint():
             self.fpr[fpid] = quickRsim.loadFingerprint3(datadir, 'FP_MorgRF')
-            
-        # fp, fpn, fpp, fpfun = loadFingerprint(arg.datadir, arg.fp)
-        # fpRF, fpnRF, fprRF, rfDict, rfdist = loadFingerprint3(arg.datadir, 'FP_MorgRF')
 
         with open(datadir+'ruthsprint.txt', 'a+') as handler:
             handler.write("in fpData done\n")
@@ -86,18 +78,10 @@ class preLoad(object):
                     if seqid not in self.UprotToMnx:
                         self.UprotToMnx[seqid] = set()
                     self.UprotToMnx[seqid].add(mnxr)
-        
-        # with open(os.path.join(datadir, fl[1])) as f2:
-        #     self.upclst = json.load(f2)
-        
-        # with open(os.path.join(datadir, fl[2])) as f3:
-        #     self.clstrep= json.load(f3)
 
         self.seqorg = seqOrganism(datadir, fl[3])
         self.tax = readTaxonomy(datadir, fl[4])
 
-        # self.seqorg = seqOrganism(datadir, fl[1])
-        # self.tax = readTaxonomy(datadir, fl[2])
 
     def reacData(self, datadir, smf):
     #     """ Transitional downgrade mapping for mnx v3 to v2.
@@ -138,10 +122,7 @@ def readData(datadir):
     pc.fasta(datadir, 'seqs.fasta')
     pc.fpData(datadir)
     pc.seqData(datadir, ['reac_seqs.tsv', '_', '_', "seq_org.tsv", "org_lineage.csv"])
-    # pc.reacData(datadir, ['reac_smi.csv', '', '', 'reac_prop.tsv'])
     pc.reacData(datadir, ['reac_smi.csv', 'reac_xref.tsv', '', 'reac_prop.tsv'])
-    # pc.reacData(datadir, ['reac_smi.csv','reac_xref.tsv',"rxn_consensus_20160612.txt",
-    #                       'reac_prop.tsv']) #, 'brenda-mnxref2.tsv', 'sabiork-mnxref2.tsv', 'reac_xref_v3.tsv'])
     return pc
 
 def availableFingerprints():
@@ -244,7 +225,6 @@ def readTaxonomy(datadir, fileLineage):
     return tax
 
 def taxDistance(tax, host, target):
-    # tax, host, target = tax, host, seqorg[y][0]
     if host in tax and target in tax:
         hostLineage = set(tax[host])
         targetLineage = set(tax[target])
@@ -257,19 +237,6 @@ def seqScore(newscore=None):
     print('in seqScore')
     import string
     # Initial score
-    # vdict = {
-    #     string.ascii_uppercase[9]: ('Reaction similarity:', 50.0, True),
-    #     string.ascii_uppercase[12]: ('Combined score', 0.0, True),
-    #     string.ascii_uppercase[10]: ('RF similarity', 50.0, False),
-    #     string.ascii_uppercase[8]: ('Sequence <a href="https://en.wikipedia.org/wiki/Conserved_sequence" target="_blank">conservation</a>:', 1.0, True),
-    #     string.ascii_uppercase[4]: ('Sequence <a href="https://www.ncbi.nlm.nih.gov/taxonomy" target="_blank">taxonomic</a> distance:', -1.0, True),
-    #     string.ascii_uppercase[7]: ('Uniprot <a href="http://www.uniprot.org/help/protein_existence" target="_blank">protein evidence</a>:', -0.1, True),      
-    #     string.ascii_uppercase[14]: ('Percentage sheets:', 0.0, False),
-    #     string.ascii_uppercase[15]: ('Percentage turns:', 0.0, False),
-    #     string.ascii_uppercase[16]: ('Molecular weight:', 0.0, False),
-    #     string.ascii_uppercase[17]: ('Isoelectric point:', 0.0, False)
-    #     #string.ascii_uppercase[18]: ('Percentage polar amino acids:', 0.0, False)
-    # }
     vdict = {
         string.ascii_uppercase[10]: ('Reaction similarity:', 0.0, False),
         string.ascii_uppercase[13]: ('Combined score', 50.0, True),
@@ -281,7 +248,6 @@ def seqScore(newscore=None):
         string.ascii_uppercase[16]: ('Percentage turns:', 0.0, False),
         string.ascii_uppercase[18]: ('Molecular weight:', 0.0, False),
         string.ascii_uppercase[19]: ('Isoelectric point:', 0.0, False)
-        #string.ascii_uppercase[18]: ('Percentage polar amino acids:', 0.0, False)
     }
     nvdict = vdict.copy()
     # Reference order (alternatively, perhaps easier to keep table order)
@@ -341,14 +307,12 @@ def updateScore(csvfile, score):
     data = data.reset_index(drop=True)
     data.index = data.index + 1
     data.rename_axis('Select', axis="columns")
-    #data.to_csv(csvfile.replace('.csv', '_UDscore.csv'), quoting=csv.QUOTE_ALL, index=False)
     data.to_csv(csvfile, quoting=csv.QUOTE_ALL, index=False)
     print('score calculated\n')
     return data
 
 
-def readFasta(datadir, fileFasta, limit=None):
-    
+def readFasta(datadir, fileFasta, limit=None):    
     from Bio import SeqIO
     
     sequence = {}
@@ -548,7 +512,6 @@ def readRxnProp(rxnprop):
                 continue
             row = line.rstrip().split('\t')
             rxnid = row[0]
-            # ec = row[4].split(';')
             ec = row[3].split(';')
             if len(ec) > 0:
                 for e in ec:
@@ -686,7 +649,6 @@ def garnier(file, outdir):
     os.system(args)
     
     f = open(outfile, "r")
-
     helices = {}
     sheets = {}
     turns = {}
@@ -870,56 +832,7 @@ def sort_rows_df(rows, filt, head = ''):
     
     return sorted_data_test2.values.tolist()
 
-# def sort_rows(rows, columns, outdir):
-#     with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#         handler.write("\n in sort_rows number rows "+ str(len(rows)) + "\n")
 
-#     # # remove any rows with blank data values
-#     for i in range(len(columns), 0, -1):
-#         key = columns[i-1]
-#         # with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#         #     for x in rows:
-#         #         if x[abs(key)-1] == '-':
-#         #             handler.write("sort_rows filtered " + str(key) + "  " + str(x) +"\n")
-
-
-#         rows= [ x for x in rows if x[abs(key)-1] != '-' ]
-#         # with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#         #     handler.write("len rows after " +str(key)+ "   "+ str(len(rows)) + "\n")
-
-#     for i in range(len(columns), 0, -1):
-#         key = columns[i-1]
-#         # print('\nkey', key)
-#         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#             handler.write("in sort_rows key: "+ str(key) + "\n")
-#         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#             handler.write("rows: "+ str(len(rows)) + "\n")
-#         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#             handler.write("rows type: "+ str(type(rows)) + "\n")
-#         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#             handler.write("end rows "+ str(rows[-4:]) + "\n")
-#         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-#             handler.write("columns "+ str(columns) + "\n")
-
-
-
-#         if key != 0:
-#             if key < 0:
-#                 try:
-#                     rows.sort(key = lambda x: -float(x[abs(key)-1]))
-#                 except:
-#                     rows.sort(key = lambda x: x[abs(key)-1], reverse=True)
-#                     # print('e1')
-#             else:
-#                 try:
-#                     rows.sort(key = lambda x: float(x[key-1]))
-#                 except:
-#                     rows.sort(key = lambda x: x[key-1])
-#                     # print('e2')
-#             # for x in rows[0:8]: print( x[11], x[4])
-#             # print('end')
-#             # for x in rows[4000:4005]: print( x[11], x[4])
-#     return rows
 
 def write_fasta(fastaFile, targets, pc, short=False, info=False, maxlength=25):
     def shorten(s, maxlength=maxlength):
@@ -1106,7 +1019,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
     print ("Running quickRsim...pdir =", pdir)
     try:
         (MnxSim, MnxDirPref, MnxDirUsed, Smiles, EcNumber, MnxSimRF, SumScore) = getMnxSim(rxnInput, datadir, outdir, rxnm, pdir, fp, pc)
-        #print('SumScore2', SumScore)
     except:
         with open(outdir+'_ruthsprint.txt', 'a+') as handler:
             handler.write("LOST MnxSim\n" + '   '.join([str(x) for x in [rxnInput, datadir, outdir, rxnm, pdir, fp, pc]])  )
@@ -1115,8 +1027,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
 
     with open(outdir+'_ruthsprint.txt', 'a+') as handler:
         handler.write("back in selenzy.analyse \n") #"+rxnInput+"
-
-    # crash
 
     # sequence = pc.sequence
     # names = pc.names
@@ -1158,7 +1068,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
         handler.write("seqorg "+str(seqorg)[0:10]+"\ndone variables!\n")
 
     print('sorting reactions before selecting the top ', targ)
-    #list_mnx = sorted(MnxSim, key=MnxSim.__getitem__, reverse=True)  #allow user to manipulate window of initial rxn id list
     list_mnx = sorted(SumScore, key=SumScore.__getitem__, reverse=True)  #allow user to manipulate window of initial rxn id list
     print ("Creating initial MNX list...")
     targets = set()
@@ -1173,8 +1082,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
     # first creating fasta file, f, for further data extraction
     for i, x in enumerate(list_mnx):
         up = MnxToUprot.get(x)  
-        # if x == 'MNXR111576':crash
-        #if i<30: print(MnxSim[x], MnxSimRF[x], SumScore[x], x, EcNumber[x])
         if up is not None:
             for y in up:
                 if len(targets) >= int(targ):    # allow user to manipulate desired number of entries for resulting table
@@ -1352,9 +1259,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
                 else:
                     #tdist[org] = '-'
                     tdist[org] = float('Inf')
-                    # print('NOPE')
-                    # with open(outdir+'_ruthsprint.txt', 'a+') as handler:
-                    #     handler.write(str(org)+" INVENTING tdist[org]\n")
 
             rows.append( (y, desc, org, tdist[org], mnx, mnxOther, ecid, ext, conservation, rxnsim, mnxSimRF, rxndirused, sumScore, h, e, t, c, w, i, pol, Smiles, mnxSmiles) )
 
@@ -1372,16 +1276,12 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
 
     # this will filter out files that dont have values in columns 4 (tdist[org]), -9 (rxndirused) and -10(rxndirpref)
     #sortrows = sort_rows(rows, (-10, -9, 4), outdir)
-    #sortrows = sort_rows(rows, (-11, -8, 3), outdir)
 
     head = ('Seq. ID','Description', 'Organism Source', 'Tax. distance', 'Rxn. ID', 'Rxn. ID - additional', 'EC Number', 'Uniprot protein evidence', 'Consv. Score',
             'Rxn Sim.', 'Rxn Sim RF.', "Direction Used", "Combined score",
             '% helices', '% sheets', '% turns', '% coils', 'Mol. Weight', 'Isoelec. Point', 'Polar %','Query', 'Hit')       
 
-    #sortrows = sort_rows(rows, (-12, 5), outdir)
     sortrows = sort_rows_df(rows, (-13, 4), head)
-    # new filter rs
-    # sortrows = [['NA' if (y == '-' or y == '' ) else y for y in x] for x in sortrows] 
 
     with open(outdir+'_ruthsprint.txt', 'a+') as handler:
         handler.write("sorted rows\n")
@@ -1390,9 +1290,6 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
     with open(outdir+'_ruthsprint.txt', 'a+') as handler:
         handler.write("updatedMSA\n")
 
-
-
-    #csvfilename = csvfilename.replace('.csv', '_MNXR189840.csv')
     write_csv(os.path.join(outdir, csvfilename), head, sortrows)
     write_csv(os.path.join(outdir, csvfilename.replace('.csv', '2.csv')), head, sortrows)
 
@@ -1432,12 +1329,12 @@ def arguments(args=None):
     return arg
 
 if __name__ == '__main__':
-    arg = arguments()
+    # arg = arguments()
     
-    # arg = arguments(['O=C([O-])CCC(=O)C(=O)[O-].NC(CC(=O)[O-])C(=O)O>>O=C([O-])CC(=O)C(=O)[O-].NC(CCC(=O)[O-])C(=O)O', 
-    #     '/home/ruth/code/update_selenzyme/run_folder/selenzyme/selenzyPro/data/',
-    #     '/home/ruth/code/update_selenzyme/run_folder/selenzyme/selenzyPro/uploads/',
-    #     '-outfile', 'selenzy_results.csv' ] )
+    arg = arguments(['O=C([O-])CCC(=O)C(=O)[O-].NC(CC(=O)[O-])C(=O)O>>O=C([O-])CC(=O)C(=O)[O-].NC(CCC(=O)[O-])C(=O)O', 
+        '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/',
+        '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/uploads/',
+        '-outfile', 'selenzy_results.csv' ] )
 
     # arg = arguments(['C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO>>C[C@]12C[C@H](O)[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO', 
     #     '/home/ruth/code/update_selenzyme/run_folder_min_dec/data/',
@@ -1460,46 +1357,7 @@ if __name__ == '__main__':
 
     analyse(rxnInput, arg.tar, arg.datadir, arg.outdir, arg.outfile, arg.d, arg.host, NoMSA=arg.NoMSA)
 
-    # head, rows = read_csv(arg.outdir +'selenzy_results.csv')       
-    #score = [('J', 'Reaction similarity:', 50.0, True), ('M', 'Combined score', 0.0, False), ('K', 'RF similarity', 50.0, False), ('I', 'Sequence <a href="https://en.wikipedia.org/wiki/Conserved_sequence" target="_blank">conservation</a>:', 1.0, True), ('E', 'Sequence <a href="https://www.ncbi.nlm.nih.gov/taxonomy" target="_blank">taxonomic</a> distance:', -1.0, True), ('H', 'Uniprot <a href="http://www.uniprot.org/help/protein_existence" target="_blank">protein evidence</a>:', -0.1, True), ('O', 'Percentage sheets:', 0.0, False), ('P', 'Percentage turns:', 0.0, False), ('Q', 'Molecular weight:', 0.0, False), ('R', 'Isoelectric point:', 0.0, False)]
-    #updateScore(csvfile, score)
-    # # remove rows with empty values
-    # filt = [-13, 4]
-    # filt = (-11, 4)
-    # sortrows = sort_rows_df(rows, filt) # , head
-    # sorted_data_test = pd.DataFrame(sortrows, columns = head)
-    # sorted_data_test2 = sorted_data_test.sort_values(['Rxn Sim RF.', 'Tax. distance'], ascending = [False, True])
-    # sorted_data_test2 = sorted_data_test.sort_values(['Rxn Sim RF.'], ascending = [False])
-    # x = sorted_data_test2[['Seq. ID', 'Tax. distance', 'Combined score', 'Rxn Sim RF.']]
-    # y = x.sort_index()
-                        
+
 
     
-    
-    
-       
-
-
-
-
-                 
-# python quickRsim_local4_debug.py \
-#     /home/ruth/code/update_selenzyme/run_folder/selenzyme/selenzyPro/data/ \
-#     Morgan \
-#     -smarts '[H]Oc1c(OC([H])([H])[H])c([H])c(C([H])=C([H])C(=O)OC2([H])OC([H])(C([H])([H])O[H])C([H])(O[H])C([H])(O[H])C2([H])O[H])c([H])c1OC([H])([H])[H]>>[H]OC(=O)C([H])([H])C([H])(OC(=O)C([H])=C([H])c1c([H])c(OC([H])([H])[H])c(O[H])c(OC([H])([H])[H])c1[H])C(=O)O[H].[H]OC([H])([H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])=O' \
-#     -chem /home/ruth/code/update_selenzyme/selenzyme_update/data_google_cloud_edited/data_test/chem_prop.tsv \
-#     -out /home/ruth/code/update_selenzyme/run_folder/RSquickRsim_ring_MTrue.txt 
-
-
-# python gitcode/selenzyPro/selenzy_reclean.py \
-#     '[H]Oc1c(OC([H])([H])[H])c([H])c(C([H])=C([H])C(=O)OC2([H])OC([H])(C([H])([H])O[H])C([H])(O[H])C([H])(O[H])C2([H])O[H])c([H])c1OC([H])([H])[H]>>[H]OC(=O)C([H])([H])C([H])(OC(=O)C([H])=C([H])c1c([H])c(OC([H])([H])[H])c(O[H])c(OC([H])([H])[H])c1[H])C(=O)O[H].[H]OC([H])([H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])=O' \
-#     data/ \
-#     selenzyme2/selenzyPro/uploads/ \
-#     -outfile selenzy_results.csv
-
-
-
-
-
-
-
+ 
