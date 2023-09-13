@@ -38,18 +38,6 @@ import mcs_functions2
 from statistics import mean 
 
 
-#from rdkit.Chem import AllChem
-#from rdkit import Chem
-#from rdkit.Chem import rdMolDescriptors, Draw
-#from rdkit.Chem import rdChemReactions
-#from rdkit.Chem import Draw
-
-#from rdkit.Chem import rdChemReactions
-#from rdkit.Chem.Draw import IPythonConsole
-#IPythonConsole.ipython_useSVG = True
-#IPythonConsole.molSize = 800,400
-
-
 
 def fingerprint():
     """ I keep the three fingerprints that give better results in the tests """
@@ -61,12 +49,6 @@ def fingerprint():
     return fpd
 
 
-# def fingerprintRA(fp):
-#     """ I keep the three fingerprints that give better results in the tests """
-#     fpd =  {'Pattern': ('FP_MorgRF', 'FP_MorgRF1'), 
-#             'RDK': ('FP_MorgRF', 'FP_MorgRF1'), 
-#             'Morgan' : ('FP_MorgRF', 'FP_MorgRF1')}
-#     return fpd[fp]
 
 def loadFingerprint(datadir, fpid):
     fpi = fingerprint()[fpid]
@@ -111,7 +93,6 @@ def loadFingerprint2(datadir, fpid):
 
 
 def loadFingerprint3(datadir, fpid):
-    # datadir, fpid = arg.datadir, 'FP_MorgRF'
     fpi = fpid
     fpfile = os.path.join(datadir, fpi+'.npz')
     # data = np.load(fpfile) RS change
@@ -208,11 +189,10 @@ def getClosest(smi, fpfile, th=0.8, fp=None, fpn=None, fpp=None, fpfun=None, mar
         except:
             pass
     if fpp is not None:
-        # targetFp = fpfun(targetMol, fpp) # targetMol = Chem.MolFromSmiles(smi), fpp=5
+
         info1 = {}
         targetFp = AllChem.GetMorganFingerprint(targetMol, 8, bitInfo=info1, invariants=AllChem.GetConnectivityInvariants(targetMol, includeRingMembership=False))
     else:
-        # targetFp = fpfun(targetMol)
         info1 = {}
         targetFp = AllChem.GetMorganFingerprint(targetMol, 8, bitInfo=info1, invariants=AllChem.GetConnectivityInvariants(targetMol, includeRingMembership=False))
         
@@ -250,11 +230,9 @@ def reacSubsProds(dbfile):
         subs = {}
         prods = {}
         m = l.rstrip().split('\t')
-        # print(m[1])
         left, right = m[1].split(' = ')
         subs = getReactants(left)
         prods = getReactants(right)
-        # ec = m[4]
         ec = m[3]
         if len(subs) > 0 and len(prods) > 0:
             rsp[rid] = (subs, prods, ec)
@@ -279,7 +257,6 @@ def getRSim(s1, p1, s2, p2, sim):
     pairs = [('s1','s2'), ('s1', 'p2'), ('p1', 's2'), ('p1', 'p2')]
     compPairs = {}
     for p in pairs:
-        #print('\n', p)
         pairings = set()
         simm[p] = {}
         compPairs[p]=[]
@@ -290,9 +267,7 @@ def getRSim(s1, p1, s2, p2, sim):
                 for y in cl[p[1]]:
                     if y in sim[x]:
                         pairings.add( (sim[x][y], x, y) )
-                        #print(sim[x][y], y, x) 
-                           # import pdb
-                            #pdb.set_trace()
+
         found = {'left': set(), 'right': set()}
         for v in sorted(pairings, key = lambda h: -h[0]):
             if v[1] not in found['left'] and v[2] not in found['right']:
@@ -311,7 +286,7 @@ def getRSim(s1, p1, s2, p2, sim):
             ss[p] = 0.0
     S1 = math.sqrt(ss[pairs[0]]**2 + ss[pairs[3]]**2)/math.sqrt(2)
     S2 = math.sqrt(ss[pairs[1]]**2 + ss[pairs[2]]**2)/math.sqrt(2)
-    #for k, v in simm.items(): print(k, [x[0] for x in v.values()])
+
     return(S1, S2, compPairs)
 
 
@@ -383,299 +358,6 @@ def generate_RFscore( subsRF, prodsRF, subsRF_DB,prodsRF_DB):
     meanProd = sum(maxProdSim)/len(maxProdSim)
     
     return meanSub, meanProd 
-
-#################################################
-                        
-# def get_MCS2(comps1, comps2, fragSize):
-    
-#     # process the comps
-#     Comps1 = []
-#     sucesses = []
-#     for c1 in comps1:
-#         comp, atomMap, fpM, info, fragAtoms = process_comp(c1, fragSize)
-#         Comps1.append([comp, atomMap, fpM, info, fragAtoms])
-#         if comp is not None:
-#             sucesses.append(c1)
-
-#     Comps2 = []
-#     for c2 in comps2:
-#         comp, atomMap, fpM, info, fragAtoms = process_comp(c2, fragSize)
-#         Comps2.append([comp, atomMap, fpM, info, fragAtoms])
-
-#     # for each compound in comps1 get the biggest MCS for the compounds in comp2, then use this largest MCS to get the reacting frags
-#     rfrags =[]
-#     adj = []
-#     fps=[]
-#     noOverlap=0
-#     totalOverlap=0
-#     cantMap=0
-#     noComp2=0
-#     GetSubstructFail=0
-    
-#     for x in Comps1:
-#         comp1, atomMap1, fpM1, info1, fragAtoms1 = x
-        
-#         if comp1 is None:
-#             print('no comp1')
-#             rfrags.append([])
-#             adj.append([])  
-#             fps.append([])
-#             continue
-#         fps.append(fpM1)
-#         comp1RFs={}
-#         comp1RFAs={}
-        
-#         # for each comp2 get the biggest mcs
-#         m=0 # number of atoms
-#         # biggestMcs = [] # mcs smarts
-#         # i = [] # index
-#         for i1, y in enumerate(Comps2):
-#             comp2, atomMap2, fpM2, info2, fragAtoms2 = y
-#             if comp2 is None:
-#                 noComp2+=1
-#                 continue
-
-
-#             res = Chem.rdFMCS.FindMCS([comp1, comp2], timeout=1)
-#             m = res.numAtoms  
-#             # print('m', m)
-#             # this comp2 might not have RFs but others will
-#             if m==0:
-#                 noOverlap+=1
-#                 continue
-#             bMcs = res.smartsString
-            
-#             # get the reacting frags
-#             if m < comp1.GetNumAtoms():
-
-#                 bMcs = Chem.MolFromSmarts(bMcs)
-#                 # outerAtoms = set([y  for x in comp1.GetSubstructMatches(bMcs) for y in set(range(0,comp1.GetNumAtoms()))- set(x)])
-
-#                 # mcsAtoms=set([y for x in comp1.GetSubstructMatches(bMcs) for y in x - ])
-#                 # reactAtoms = [set([k]) | v-outerAtoms for k, v in atomMap1.items() if k in outerAtoms and len(v-outerAtoms)>0]
-#                 reactAtoms = [set([x]) | atomMap1[x]-set(substruct)  for substruct in comp1.GetSubstructMatches(bMcs) for x in substruct if len(atomMap1[x]-set(substruct))>0 ]
-#                 if len(reactAtoms)==0 and len(comp1.GetSubstructMatches(bMcs))==0:
-#                     print("GetSubstructMatches failed")
-#                     GetSubstructFail +=1
-#                     continue
-                
-#                 if len(reactAtoms) == comp1.GetNumAtoms():
-#                     cantMap+=1
-#                     continue
-                
-#                 # get all the overlapping fragments
-#                 rf = {k:v for k, v in fragAtoms1.items() for reacAtomSet in reactAtoms if len(v.intersection(reacAtomSet))>0  }
-                
-#                 # # separate the smallest fragments from the larger ones
-#                 rf1, rfAdj1 = get_common_atoms_frags(rf, fragAtoms1, reactAtoms)
-#                 if len(rf1)==0:
-#                     print('problem overlapping frags not substrate')
-#                     crash
-                    
-#                 for k, v in rf1.items(): 
-#                     if k not in comp1RFs.keys():
-#                         comp1RFs[k] =v
-                        
-#                 for k, v in rfAdj1.items(): 
-#                     if k not in comp1RFAs.keys():
-#                         comp1RFAs[k] =v 
-                        
-                        
-#             elif comp2.GetSubstructMatches(comp1):
-#                 ### if comp is a substructure of comp 1
-#                 if comp1.GetNumAtoms() == comp2.GetNumAtoms() == m:
-#                     print('compound unchanged')
-#                     totalOverlap+=1
-#                     continue
-                    
-#                 # print('the whole compound is substructure')
-#                 # get the atoms in comp2 that are in comp1
-#                 mapAt= comp2.GetSubstructMatches(comp1) 
-#                 # map the atoms comp2:comp1
-#                 mapAtoms = {}
-#                 for mapping in mapAt:
-#                     for i, x in enumerate(mapping):
-#                         if x not in mapAtoms.keys():
-#                             mapAtoms[x]=set()
-#                         mapAtoms[x].add(i)
-
-#                 # get the atoms on the reacting end of comp2
-#                 mcsAtoms2=set(mapAtoms.keys())
-#                 #reactAtoms2 = [set([k]) | v-mcsAtoms2 for k, v in atomMap2.items() if k in mcsAtoms2 and len(v-mcsAtoms2)>0]
-                
-#                 outerAtoms2 = set([y  for x in comp2.GetSubstructMatches(comp1) for y in set(range(0,comp2.GetNumAtoms()))- set(x)])
-#                 if len(outerAtoms2) == comp1.GetNumAtoms():
-#                     cantMap+=1
-#                     continue
-
-#                 # reactAtoms2 = [set([k]) | v-outerAtoms2 for k, v in atomMap2.items() if k in outerAtoms2 and len(v-outerAtoms2)>0]
-#                 reactAtoms2 = [set([x]) | atomMap2[x]-set(substruct)  for substruct in comp2.GetSubstructMatches(comp1) for x in substruct if len(atomMap2[x]-set(substruct))>0 ]
-                         
-#                 # map reacting atoms onto compound1
-#                 reactAtoms = []
-#                 for x in reactAtoms2:
-#                     for y in x:
-#                         if y in mapAtoms.keys():
-#                             reactAtoms.append(mapAtoms[y])
-                
-#                 # if the reacting Atoms aren't touching then separate them out
-#                 removeI = []
-#                 addI = []
-#                 for x in reactAtoms:
-#                     if len(x) == 1: continue
-#                     linked=set()
-#                     for i in x:
-#                         linked= linked|atomMap1[i]
-                        
-#                     if x == (x - linked):
-#                         removeI.append(x)
-#                         for y in x:
-#                             addI.append(set([y]))
-                 
-#                 reactAtoms = reactAtoms + addI
-#                 reactAtoms = [x for x in reactAtoms if x not in removeI]
-                
-#                 # get all the overlapping fragments
-#                 rf = {k:v for k, v in fragAtoms1.items() for reacAtomSet in reactAtoms if len(v.intersection(reacAtomSet))>0  }
-                
-#                 # # separate the smallest fragments from the larger ones
-#                 rf1, rfAdj1 = get_common_atoms_frags(rf, fragAtoms1, reactAtoms)
-
-#                 if len(rf1)==0:
-#                     print('problem overlapping frags subset')
-#                     crash
-               
-#                 for k, v in rf1.items(): 
-#                     if k not in comp1RFs.keys():
-#                         comp1RFs[k] =v
-                        
-#                 for k, v in rfAdj1.items(): 
-#                     if k not in comp1RFAs.keys():
-#                         comp1RFAs[k] =v
-                        
-#             else:
-#                 #changed bonds same atoms
-#                 # bMcs = Chem.MolFromSmarts(bMcs)
-#                 # compMCS, atomMapMCS, fpMMCS, infoMCS, fragAtomsMCS = process_comp(Chem.MolToSmiles(bMcs))
-#                 bMcs = Chem.MolFromSmarts(bMcs)
-                
-#                 if bMcs.GetNumBonds() == comp1.GetNumBonds():
-#                     # print('compound unchanged')
-#                     totalOverlap+=1
-#                     continue             
-                
-#                 # map the atoms
-#                 mapAt= comp1.GetSubstructMatches(bMcs) 
-#                 mapAtoms = {}
-#                 for mapping in mapAt:
-#                     for i, x in enumerate(mapping):
-#                         if x not in mapAtoms.keys():
-#                             mapAtoms[x]=set()
-#                         mapAtoms[x].add(i)
-#                         # mapAtoms[i]=set()
-#                         # mapAtoms[i].add(x)
-                
-#                 # get the bonds in MCS
-#                 bondsMCS = [ [x.GetBeginAtomIdx(), x.GetEndAtomIdx(), str(x.GetBondType())] for x in bMcs.GetBonds()]
-#                 bondsMCSR = [[x[1], x[0], x[2]] for x in bondsMCS]
-#                 # get the bonds for comp1
-#                 bondsComp1 = [ [x.GetBeginAtomIdx(), x.GetEndAtomIdx(), str(x.GetBondType())] for x in comp1.GetBonds()] 
-
-#                 reactAtoms = []
-#                 for x in bondsComp1:
-#                     if len(list(mapAtoms[x[0]]))>1 or len(list(mapAtoms[x[1]]))>1:
-#                         print('death')
-#                         crash
-#                     a1, a2, t = list(mapAtoms[x[0]])[0], list(mapAtoms[x[1]])[0], x[2]
-#                     if [a1, a2, t] not in bondsMCS and [a1, a2, t] not in bondsMCSR:# and [a1, a2, t] not in atomMapList2 :
-#                         print('comp1', x, "\n",'mcs', [a1, a2, t], "\n\n")
-#                         reactAtoms.append(set([x[0], x[1]]))
-                
-#                 # get all the overlapping fragments
-#                 rf = {k:v for k, v in fragAtoms1.items() for reacAtomSet in reactAtoms if len(v.intersection(reacAtomSet))>0  }
-                
-#                 # # separate the smallest fragments from the larger ones
-#                 rf1, rfAdj1 = get_common_atoms_frags(rf, fragAtoms1, reactAtoms)
-
-#                 if len(rf1)==0:
-#                     print('problem changed bonds/same atoms')
-#                     crash
-               
-#                 for k, v in rf1.items(): 
-#                     if k not in comp1RFs.keys():
-#                         comp1RFs[k] =v
-                        
-#                 for k, v in rfAdj1.items(): 
-#                     if k not in comp1RFAs.keys():
-#                         comp1RFAs[k] =v                    
-                    
-                        
-#             if len(rf1)==0 and totalOverlap==0 and cantMap == 0:
-#                 print('no RFs for a comp1')
-#                 crash
-        
-#         # store all the fragments from mapping comp1 onto all comp2s
-#         if len(comp1RFs)>0:
-#             rfrags.append(dict_to_sparse(comp1RFs)[0])
-#         else:
-#             rfrags.append([])
-#             if len(comps2)-noComp2 == totalOverlap:
-#                 print('compounds are all the same')
-#             elif len(comps2)-noComp2==noOverlap:
-#                 print('no overlap between comps1 and comps2')
-#             elif len(comps2)-noComp2==cantMap:
-#                 print('couldnt map comps1 and comps2')
-#             elif len(comps2)-noComp2==GetSubstructFail:
-#                 print('GetSubstructure failed')
-#             else:
-#                 print('combined problem', totalOverlap,noOverlap, cantMap, GetSubstructFail )
-#                 # crash
-                       
-#         if len(comp1RFAs)>0:
-#             adj.append(dict_to_sparse(comp1RFAs)[0])
-#         else:
-#             adj.append([])
-            
-#         # print('comp1 end rfrags', comp1RFs.keys())
-
-#     if len(rfrags)==0: 
-#         print('no rfs')
-#         crash
-                                                     
-#     return  rfrags, adj, fps, sucesses
-
-# def process_comp(comp1, fragSize):
-#     # get all the details for the fingerprints
-    
-#     if type(comp1)==str:
-#         try:
-#             comp1 = Chem.MolFromSmiles(comp1)
-#         except:
-#             print('failed MolFromSmiles')
-#             return(None, None, None, None, None)
-            
-#     try:
-#         # Chem.SanitizeMol(comp1)
-#         # rdMolStandardize.Uncharger().uncharge(comp1)
-#         comp1 = neutralize_atoms(comp1)
-#         comp1 = mol_with_atom_index(comp1)
- 
-#         # Draw.DrawMorganBits(prints, molsPerRow=4, legends=[str(x) for x in list(fpM1.GetNonzeroElements().keys()) ])
-               
-#         # get each atoms adjacent neighbours
-#         atomMap1 = getAtoms(comp1)
-        
-#         # Morgan fingerprints
-#         info1={}
-#         fpM1 = AllChem.GetMorganFingerprint(comp1, fragSize, bitInfo=info1, invariants=AllChem.GetConnectivityInvariants(comp1, includeRingMembership=False))
-        
-#         # get all the atoms in each fragment, returns {fragname:[{atoms}, startnode, radius]}           
-#         fragAtoms1 = getAtomFragments(fpM1, info1, atomMap1)   
-    
-#         return(comp1, atomMap1, fpM1, info1, fragAtoms1)
-#     except:
-#         return(None, None, None, None, None)
-     
 
 def neutralize_atoms(mol):
     if type(mol)==str:
@@ -764,18 +446,8 @@ def get_common_atoms_frags(rf, fragAtoms, reactAtoms):
 
 def generate_RFscore2(subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs):  
     # subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs = list(s1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('s1', 's2')] 
-    # subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs = list(p1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('p1', 'p2')]
     
     subList = list(subSmiles)
-    # # deal with empty queries with RFs
-    # queryNoRFs = [x for x in subList if x not in queryRF.keys() or len(queryRF[x])==0]
-    # unweightedScores = {}
-    # for x in queryNoRFs:
-    #     y =  [y for x1, y in subProdPairs if x1==x]
-    #     if y not in rfDict[r2] or len(rfDict[r2]) ==0:
-    #         unweightedScores[x, y][0] = 1
-            
-        
     
     querySubsRF = {x:queryRF[x] for x in subList if x in queryRF.keys() and len(queryRF[x])>0}
     querySubsDist = {x:queryDists[x] for x in subList if x in queryRF.keys() and len(queryDists[x])>0}
@@ -807,8 +479,6 @@ def generate_RFscore2(subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, su
                 continue
             if '_'.join([sb1, sb2]) not in spPairs:
                 continue
-            #print(sb1, sb2)
-
 
             dSubsDist = dbSubsDist[sb2]
             dSortDists = {}
@@ -829,20 +499,12 @@ def generate_RFscore2(subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, su
                 else:
                     intersect = {frag: min([dSortDists[fragDist].count(frag), qSortDists[fragDist].count(frag)]) for frag in set(dSortDists[fragDist] + qSortDists[fragDist]) if frag in dSortDists[fragDist] and frag in qSortDists[fragDist]}
                     intersectScore = sum(intersect.values())
-                    # unionScore = (len(qSortDists[fragDist]) + len(dSortDists[fragDist])) /2
-                    # if intersectScore/unionScore > 0.95:
-                    #     print(sb1, sb2, intersectScore/unionScore)
-                    # unweightedScores[sb1, sb2][fragDist] = intersectScore/unionScore
                     unweightedScores[sb1, sb2][fragDist] = intersectScore/len(qSortDists[fragDist])
-    
-    
+       
     weightedScores={}
     for pair, scores in unweightedScores.items():
-        # weights = simpleWeight(max(scores.keys()))
         weights = log_fun_weight(max(scores.keys()))
-        # if len(weights) != len(scores): print(len(weights), len(scores))
         weightedScores[pair] = sum([ scores[x]*weights[x] if x in scores and scores[x]>0 else 0 for x in list(range(0, max(scores.keys())+1)) ])
-
 
     return(weightedScores)
 
@@ -880,23 +542,6 @@ def dict_to_sparse(rfs, MorganRad):
     SparseIntVect1.UpdateFromSequence(rfList1)    
     return(SparseIntVect1)
 
-
-# def dict_to_sparse(rfs):
-#     # make sure the input is a list
-#     if type(rfs) != list:
-#         rfs = [rfs]
-    
-#     # make into sparse int vectors
-#     rf_list = []
-#     for rf in rfs:
-#         RF1 =  [int(x.split('_')[0]) for x in rf.keys()]
-    
-#         # Make empty UIntSparseIntVect, then update them with the sparse int vectors       
-#         rf1 = AllChem.GetMorganFingerprint(Chem.MolFromSmiles(''), 5)
-#         rf1.UpdateFromSequence(RF1)
-#         rf_list.append(rf1)
-#     return(rf_list)
-
 def tidy(queryRF, prodsRF, hits1, queryAdj, prodsAdj, hits2):
     queryRF = dict(zip(hits1, queryRF))
     queryAdj = dict(zip(hits1, queryAdj))
@@ -907,17 +552,8 @@ def tidy(queryRF, prodsRF, hits1, queryAdj, prodsAdj, hits2):
     return(queryRF, queryAdj)
 
 
-
-
-# def drawReactions(smi1, smi2):
-
-#     rxn1 = rdChemReactions.ReactionFromSmarts(smi1, useSmiles=True)
-#     rxn2 = rdChemReactions.ReactionFromSmarts(smi2, useSmiles=True)
-#     return [Draw.ReactionToImage(rxn1), Draw.ReactionToImage(rxn2)]
-                        
 def test():
-    #import random
-    #import Selenzy_local
+
     chem_prop = "/home/ruth/code/update_selenzyme/new_data/chem_prop.tsv"
     chem_prop= pd.read_csv(chem_prop, sep='\t', skiprows=347)
     
@@ -927,8 +563,7 @@ def test():
     reac_smiles = "/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/data/reac_smi.csv"
     reac_smi = pd.read_csv(reac_smiles)
     
-    pc = Selenzy_local.readData('/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/data/')
-    
+    pc = Selenzy_local.readData('/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/data/')   
     sample = random.sample(range(reac_prop.shape[0]), 10000)
 
     
@@ -1019,19 +654,6 @@ def draw_rfs(comp, fp, bi, rfs):
         
 
 
-
-########################################################################
-
-
-
-# def drawFrags(mol, fp, info):
-    
-#     #mol, fp, info = [comp[0], comp[2], comp[3]]
-#     tpls = [(mol, x, info) for x in fp.GetNonzeroElements()]
-#     p = Draw.DrawMorganBits(tpls, molsPerRow=5, legends=[str(x) for x in fp.GetNonzeroElements()])
-#     return p
-
-
 def run(arg, pc, rxn_mapper):
 
     print('in run')
@@ -1097,7 +719,6 @@ def run(arg, pc, rxn_mapper):
         #comp, atomMap, fpM, info, fragAtoms2, smile, count
         subMols = [process_compF(k, 8) +(k, v,) for k, v in rTarget[r][0].items()]
         prodMols = [process_compF(k, 8) +(k, v,) for k, v in rTarget[r][1].items()]
-        #images = []
     
         # AAM using RXNmapper
         RFavail = 0
@@ -1139,24 +760,8 @@ def run(arg, pc, rxn_mapper):
                     queryRF[smile]=rfs
                     queryDists[smile]=dists  
 
-
-    # sim_comp = []
-    # for x in sim: 
-    #     t=[]
-    #     for k, v in sim[x].items(): 
-    #         if v>0.5:
-    #             t.append([v, x[0:30], k])
-    #     sim_comp.append(sorted(t, reverse=True)[0:5])
-             
-    # print('similar compounds')
-    # for x in sim_comp: 
-        # for x2 in x: print(x2)
                 
     print("\nget scores")            
-    # highWholeCompScores = []
-    # highRFScores = []
-    # highW_lowRF = []
-    # highRF_lowW = []
     
     for r1 in rTarget:
         s1, p1 = rTarget[r1]
@@ -1166,8 +771,6 @@ def run(arg, pc, rxn_mapper):
             s2, p2, ec2 = rsp[r2]   
             if s2 == p2: continue
             S1, S2, subProdPairs = getRSim(s1, p1, s2, p2, sim)
-            # if r2=='MNXR94784': crash
-            #if max(S1, S2)>0.5: crash
             
             # if aam failed continue loop
             if RFavail ==0:
@@ -1210,14 +813,7 @@ def run(arg, pc, rxn_mapper):
                             else: 
                                 RF_score=0
                     except:
-                        # print('rf score generation failed', r2)
                         RF_score = float("Nan")
-
-
-                    # if RF_score > 0.6: print('RF score', RF_score, S1, S2)
-                        
-                    # if S1>0.9 or S2>0.9 or RF_score>0.8 : 
-                    #     print(r2, 'S1', S1, 'S2', S2, 'RF', RF_score)
                     
                     if arg.out:
                         print(r1, r2, S1, S2, smiles, RF_score, ec2,   file = fileObj) 
@@ -1228,11 +824,6 @@ def run(arg, pc, rxn_mapper):
                         else:
                             print(r1, r2, S2, smiles,  RF_score, ec2,   file = fileObj)                
 
-    
-    # highWholeCompScores = sorted(highWholeCompScores, reverse=True)[0:10]  #sorted(highWholeCompScores, reverse=True)
-    # highRFScores.sort(key=lambda x:x[1], reverse=True)
-    # highRFScores= highRFScores[0:10]
-    # return [highWholeCompScores, highRFScores, highW_lowRF, highRF_lowW]
 
 
 
@@ -1271,42 +862,16 @@ def arguments(args=None):
 
 
 if __name__ == '__main__':
-    arg = arguments()
+    # arg = arguments()
 
-    # smi = 'BrCCOCCBr.CCN(C(C)C)C(C)C.CCOC(C)=O.CN(C)C=O.Cl.NCC(F)(F)CO>>OCC(F)(F)CN1CCOCC1'
-    # MNXR189106 / MNXR106859 2-oxoglutarate MNXM20 + 1 CoA ->  succinyl-CoA MNXM741428
-    # subProdPairs[('s1', 'p2')]
-    # [['CC(C)(COP(=O)([O-])OP(=O)([O-])OC[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1OP(=O)([O-])[O-])[C@@H](O)C(=O)NCCC(=O)NCCS',  'MNXM727276'],
-    # ['O=C([O-])CCC(=O)C(=O)[O-]', 'MNXM20']]
-    # smi = 'O=C([O-])CCC(=O)C(=O)[O-].CC(C)(COP(=O)([O-])OP(=O)([O-])OC[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1OP(=O)([O-])[O-])[C@@H](O)C(=O)NCCC(=O)NCCS>>CC(C)(COP(=O)([O-])OP(=O)([O-])OC[C@H]1O[C@@H](n2cnc3c(N)ncnc32)[C@H](O)[C@@H]1OP(=O)([O-])[O-])[C@@H](O)C(=O)NCCC(=O)NCCSC(=O)CCC(=O)[O-]'
 
-    # #  (E)-coniferol -> coniferyl acetate|2.3.1.224
-    # # reaction hits {'MNXR113611'}
-    # # smi = 'COc1cc(\C=C\CO)ccc1O>>COc1cc(\C=C\COC(C)=O)ccc1O'
-    
-    
-    # smi = '[NH3+][C@@H](CCC(=O)N[C@@H](CS)C([O-])=O)C([O-])=O.Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])([O-])=O)[C@@H](O)[C@H]1O.OP([O-])([O-])=O>>Nc1ncnc2n(cnc12)[C@@H]1O[C@H](COP([O-])(=O)OP([O-])(=O)OP([O-])([O-])=O)[C@@H](O)[C@H]1O.[NH3+][C@@H](CS)C([O-])=O'
-    # smi = 'CC1=C2C3OC3C3=C(C=CC=C3)C2=C(C)C2=CC=CC=C12.[H]O[H]>>CC1=C2[C@H](O)[C@@H](O)C3=C(C=CC=C3)C2=C(C)C2=CC=CC=C12'
-    # # smi = 'O=C([O-])CCC(=O)C(=O)[O-].NC(CC(=O)[O-])C(=O)O>>O=C([O-])CC(=O)C(=O)[O-].NC(CCC(=O)[O-])C(=O)O'
-    #smi = '[*].CC=C(C)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)N1C=NC2=C(N)N=CN=C12>>CCC(C)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)N1C=NC2=C(N)N=CN=C12'
-    # smi = 'CC=C(C)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)N1C=NC2=C(N)N=CN=C12>>CCC(C)C(=O)SCCNC(=O)CCNC(=O)[C@H](O)C(C)(C)COP([O-])(=O)OP([O-])(=O)OC[C@H]1O[C@H]([C@H](O)[C@@H]1OP([O-])([O-])=O)N1C=NC2=C(N)N=CN=C12'
-    # MNXR106362
-    
-    
-    # # smi = 'O=C1CC(c2ccc(O)c(O)c2)Oc2cc(O)cc(O)c21>>O=C1c2c(O)cc(O)cc2OC(c2ccc(O)c(O)c2)C1O'
-    # smi = 'O=C([O-])CCC(=O)[O-].CC(=O)CC(=O)SCCN=C([O-])CCN=C([O-])C(O)C(C)(C)COP(=O)(O)OP(=O)(O)OCC1OC(n2cnc3c(N)ncnc32)C(O)C1OP(=O)([O-])[O-]>>CC(=O)CC(=O)[O-].CC(C)(COP(=O)(O)OP(=O)(O)OCC1OC(n2cnc3c(N)ncnc32)C(O)C1OP(=O)([O-])[O-])C(O)C([O-])=NCCC([O-])=NCCSC(=O)CCC(=O)[O-]'
-    # # smi = 'O[C@H](COP([O-])([O-])=O)[C@@H](O)C=O>>O[C@H](COP([O-])([O-])=O)[C@@H](O)[C@H](O)CC(=O)C([O-])=O'
-    # smi = 'Cn1cnc2[nH]c(=O)[nH]c(=O)c21>>O=c1[nH]c(=O)c2nc[nH]c2[nH]1'
-    
-    # # # fp = '/home/ruth/code/update_selenzyme/run_folder_min_dec/data/'
-
-    # smi = 'C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO>>C[C@]12C[C@H](O)[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO'    
-    # fp = '/home/ruth/code/update_selenzyme/run_folder_min_dec/data_2023/data2/'
-    # arg = arguments([fp, 
-    #     'Morgan',
-    #     '-smarts', smi, 
-    #     '-out', '/home/ruth/code/update_selenzyme/RSquickRsim_new.txt'] )
-    # pc=None
+    smi = 'C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO>>C[C@]12C[C@H](O)[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO'    
+    fp = '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/'
+    arg = arguments([fp, 
+        'Morgan',
+        '-smarts', smi, 
+        '-out', '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/RSquickRsim_new.txt'] )
+    pc=None
     
     
     rxn_mapper = RXNMapper()     
