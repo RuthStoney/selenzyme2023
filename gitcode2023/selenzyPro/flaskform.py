@@ -3,29 +3,21 @@
 """
 Created on Thu Feb  9 12:20:49 2017
 
-@author: Pablo Carbonell, jerrywzy                          
+@author: Pablo Carbonell, jerrywzy, Ruth Stoney                       
 
-cd /home/ruth/code/update_selenzyme/run_folder_min_dec
 python gitcode/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads -datadir selenzyme2/selenzyPro/data -logdir selenzyme2/selenzyPro/log -d
-python gitcode2023/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads/ -datadir data_2023_t -logdir selenzyme2/selenzyPro/log -d
-
-http://0.0.0.0:5001/
 
 """
-import os, glob, time #, shutil, subprocess
-import argparse, uuid, json #, csv
+import os, glob, time
+import argparse, uuid, json
 import logging
 from logging.handlers import RotatingFileHandler
-#import Selenzy3 as Selenzy
-import selenzy_reclean as Selenzy
-#import Selenzy_local as Selenzy
+import selenzy as Selenzy
 from flask import Flask, flash, render_template, request, redirect, url_for, send_from_directory, jsonify
 from flask_restful import Resource, Api
 from flask import session
-# from werkzeug import secure_filename
 from werkzeug.utils import secure_filename
 import pandas as pd
-# import numpy as np
 
 global session
 app = Flask(__name__)
@@ -36,13 +28,6 @@ app.config['KEEPDAYS'] = 10
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = set(['txt', 'rxn', 'smi', 'smarts', 'smirks', 'csv', 'fasta', 'fas', 'fa'])
 
-
-print('enter getJSONResult', flush=True)
-
-# filenameRS = secure_filename("flasklog")
-# fpRS = file.join('/home/ruth/code/update_selenzyme/run_folder/', filenameRS)
-# with open(fpRS, "a") as fd:
-#     fd.write("in flask \n")
 
 def arguments():
     parser = argparse.ArgumentParser(description='Options for the webserver')
@@ -80,11 +65,7 @@ def save_rxn(rxninfo):
     return rxninfo
 
 def init_session():
-    print('in init_session')
     global session
-    with open('FlasklogRS.txt', 'w+') as handler:
-        handler.write("init_session()\n") 
-
     maintenance(app.config['KEEPDAYS'])
     reset_session()
     uniqueid = session['uniqueid']
@@ -98,7 +79,6 @@ def init_session():
     session['username'] = session['uniqueid']
     # Restart the Score for each new session
     session['SCORE'] = Selenzy.seqScore()
-    print('end init_session')
 
 
 def reset_session():
@@ -108,14 +88,12 @@ def reset_session():
     session['uniqueid'] = uniqueid
 
 def run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA):
-    print('run_session')
-    global session 
+    global session
     uniqueid = session['uniqueid']
     uniquefolder = session['uniquefolder']
     csvfile = "selenzy_results.csv"
-    app.logger.info( '\nRun session: %s' % (uniqueid,) )
-    print('Selenzy.analyse outfolder ', app.config['DATA_FOLDER'])
-    success, app.config['TABLES'] = Selenzy.analyse(['-'+ rxntype, rxninfo], 
+    app.logger.info( 'Run session: %s' % (uniqueid,) )
+    success, app.config['TABLES'] = Selenzy.analyse(['-'+rxntype, rxninfo], 
                                                     targets,
                                                     app.config['DATA_FOLDER'],  
                                                     uniquefolder,
@@ -129,8 +107,8 @@ def run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA):
     if success:
         data = Selenzy.updateScore(file_path(uniqueid, csvfile), session['SCORE'])
         return data, csvfile, uniqueid
-
-
+    else:
+        app.logger.info('\nSelenzy.analyse failed')
 
     
 def retrieve_session(csvinfo):
@@ -195,19 +173,16 @@ class RestQuery(Resource):
                 #     if app.config['TABLES'].rxndir[mnxrid] == '-1':
                 #         smarts = app.config['TABLES'].smir[ mnxrid ][1]
                 try:
-                    print('uniqueid bit')
                     outname = file_path(session['uniqueid'], session['uniqueid'])
                     rxninfo = Selenzy.sanitizeSmarts(smarts, outname)
                     args['smarts'] = rxninfo
                 except:
                     pass            
 
-        dr="odd"
         if 'smarts' in args:
             """ Submit SMARTS query """
             rxntype = 'smarts'
             rxninfo = args['smarts']
-            dr="odd1"
             if 'targets' in args:
                 targets = args['targets']
             else:
@@ -230,24 +205,21 @@ class RestQuery(Resource):
                 fp = 'Morgan'
             if 'score' in args:
                 session['SCORE'] = Selenzy.seqScore(args['score'])
-            dr="odd2"
             try:
                 if isinstance(rxninfo, (list, tuple) ):
-                    dr = "-instance"
                     data = []
                     for instance in rnxinfo:
                         dat, csvfile, sessionid = run_session(rxntype, instance, targets, direction, host, fp, noMSA)
                         data.append(dat)
                     data = pd.DataFrame(data)
                 else:
-                    dr = "-NotInstance"+str([rxntype, rxninfo, targets, direction, host, fp, noMSA])
                     data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA)
 
-                return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem_RestQuery', 'data': data.to_json()})
+                return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem', 'data': data.to_json()})
             except:
-                return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'SynbiochemRestQuery', 'data': None})
+                return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem', 'data': None})
         else:
-            return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'SynbiochemRestQuery', 'data': None})
+            return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem', 'data': None})
 
 class RestSource(Resource):
     """ REST interface, returns api info """
@@ -264,23 +236,8 @@ class RestFinger(Resource):
         fp = Selenzy.availableFingerprints()
         return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem', 'data': list(fp)})
 
-
- # logfileRS = '/home/ruth/code/update_selenzyme/run_folder/RSlog.txt'
-# with open(logfileRS, 'a') as handler:
-#     f.write('adding resources')
-
-
-# handler2 = RotatingFileHandler(os.path.join('/home/ruth/code/update_selenzyme/run_folder/', 'RSflask.log'), maxBytes=10000, backupCount=1)
-
-# log = logging.getLogger('werkzeug')
-# log.addHandler(handler2)
-# app.logger.addHandler(handler2)
-
-# app.logger.info( 'end of main!' )
-
-# print('rest', flush=True)
-
 api.add_resource(RestGate, '/REST')
+
 api.add_resource(RestQuery, '/REST/Query')
 
 api.add_resource(RestSource, '/REST/Source')
@@ -326,10 +283,8 @@ def logout():
 
 @app.route('/msa', methods=['POST'])
 def post_msa():
-    
     """ Post safely the MSA """
     if request.method == 'POST':
-        print('post the mcs')
         sessionid = json.loads(request.values['sessionid'])
         msafile = os.path.join(app.config['UPLOAD_FOLDER'], sessionid, 'sequences_aln.fasta')
         treefile = os.path.join(app.config['UPLOAD_FOLDER'], sessionid, 'sequences.dnd')
@@ -431,12 +386,10 @@ def display_reaction(marvin=app.config['MARVIN']):
 @app.route('/sorter', methods=['POST'])
 def sort_table():
     """ Sorts table """
-    
     if request.method == 'POST':
-        print('sort table')
         jfilter = json.loads(request.values.get('filter'))
         try:
-            filt = [int(x) for x in jfilter]           
+            filt = [int(x) for x in jfilter]
         except:
             return
         session = json.loads(request.values.get('session'))
@@ -444,10 +397,8 @@ def sort_table():
         csvfile = os.path.join(app.config['UPLOAD_FOLDER'], session, csvname)
         outdir = os.path.join(app.config['UPLOAD_FOLDER'], session)
         head, rows = Selenzy.read_csv(csvfile)
-        # remove rows with empty values
         # sortrows = Selenzy.sort_rows(rows, filt)
-        print('sort table filter', filt)
-        sortrows = Selenzy_df.sort_rows_df(rows, filt)
+        sortrows = Selenzy.sort_rows_df(rows, filt)
         Selenzy.updateMSA(outdir, sortrows)
         Selenzy.write_csv(csvfile, head, sortrows)
         data = pd.read_csv(csvfile)
@@ -459,7 +410,6 @@ def sort_table():
 def add_rows():
     """ Add rows to table """
     if request.method == 'POST':
-        print('add rows')
         if 'session' in request.values:
             sessionid = request.values['session']
         else:
@@ -538,7 +488,6 @@ def score_table():
     """ Score table """
     if request.method == 'POST':
         score = json.loads(request.values.get('score'))
-        print('\nin score table', score)
         sessid = json.loads(request.values.get('session'))
         csvname = os.path.basename(json.loads(request.values.get('csv')))
         csvfile = os.path.join(app.config['UPLOAD_FOLDER'], sessid, csvname)
@@ -561,7 +510,6 @@ def show_table():
 @app.route('/results', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        print('upload table')
         """ The POST request should come from an already initalised session """
         if 'uniqueid' not in session:
             return redirect ( url_for('upload_form') )
@@ -632,18 +580,8 @@ def results_file(sessionid,filename):
 
 # Reconfigure for gunicorn
 if __name__== "__main__":  #only run server if file is called directly
-    print('flaskform main')
-
-    # arg = arguments(['-uploaddir', '/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/uploads/',
-    #     '-datadir',  '/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/data/',
-    #     '-logdir',  '/home/ruth/code/update_selenzyme/run_folder/selenzyme2/selenzyPro/log/'] )
-    
-    # python selenzyme2/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads -datadir selenzyme2/selenzyPro/data -logdir selenzyme2/selenzyPro/log -d
-    # python gitcode/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads/ -datadir data_2023/data2/ -logdir selenzyme2/selenzyPro/log -d
-
 
     arg = arguments()
-
 
     app.config['UPLOAD_FOLDER'] = os.path.abspath(arg.uploaddir)
     app.config['LOG_FOLDER'] = os.path.abspath(arg.logdir)
@@ -656,16 +594,13 @@ if __name__== "__main__":  #only run server if file is called directly
         app.config['DEBUG'] = False
         app.config['PRELOAD'] = True        
 
-    print('reading seqOrg ' + arg.datadir, flush=True)
     app.config['ORG'] = Selenzy.seqOrganism(arg.datadir, "seq_org.tsv")
-    print('trying readData')
 
     if app.config['PRELOAD']:
         app.config['TABLES'] = Selenzy.readData(arg.datadir)
     else:
         app.config['TABLES'] = None
 
-    print('read data')
     handler = RotatingFileHandler(os.path.join(app.config['LOG_FOLDER'], 'selenzy.log'), maxBytes=10000, backupCount=1)
 
     log = logging.getLogger('werkzeug')
@@ -674,6 +609,5 @@ if __name__== "__main__":  #only run server if file is called directly
 
     app.logger.info( 'running main\n' )
 
-    app.logger.info( 'end main' )
     app.run(host="0.0.0.0",port=5001, debug=app.config['DEBUG'], threaded=True)
 #    app.run(port=5000, debug=True)
