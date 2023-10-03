@@ -14,14 +14,6 @@ python quickRsim.py data/reac_prop.tsv data/metanetx.fs -rid MNXR3215 -chem data
 python quickRsim.py data/reac_prop.tsv data/metanetx.fs -rxn rhea15870.rxn -th 0.9
 
 
-# smi = 'C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO>>C[C@]12C[C@H](O)[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO'    
-# fp = '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/'
-# arg = arguments([fp, 
-#     'Morgan',
-#     '-smarts', smi, 
-#     '-out', '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/RSquickRsim_new.txt'] )
-# pc=None
-
 '''
 
 from __future__ import print_function
