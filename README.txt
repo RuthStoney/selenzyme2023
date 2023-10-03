@@ -11,3 +11,5 @@ To start selenzymeRF run the bash file start_server.sh (requires user input)
 5. Delete old Docker images and containers
 6. Build Docker images
 7. Start Docker container
+
+
