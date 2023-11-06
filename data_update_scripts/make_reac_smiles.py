@@ -9,6 +9,7 @@ Created on Mon Aug 21 19:12:38 2023
 
 from pathlib import Path
 import pandas as pd
+import argparse
 
 
 def arguments(args=None):
@@ -54,8 +55,8 @@ def run(raw_data_folder, data_folder):
     # make the reaction smiles 
     reac_smi = []
     for reac, comps in reaction_compounds.items():
-        sub = '.'.join([comp_smiles[x] for x in comps[0] if x in comp_smiles])
-        prod = '.'.join([comp_smiles[x] for x in comps[1] if x in comp_smiles])
+        sub = '.'.join([comp_smiles[x] for x in sorted(comps[0]) if x in comp_smiles])
+        prod = '.'.join([comp_smiles[x] for x in sorted(comps[1]) if x in comp_smiles])
         
         if sub and prod:
             reac_smi.append([reac, '>>'.join([sub, prod])])

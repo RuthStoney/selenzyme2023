@@ -10,7 +10,7 @@ FROM sbc/selenzybase2023
 
 
 ENTRYPOINT ["python"]
-CMD ["/selenzyme2/selenzyPro/flaskform.py", "-uploaddir", "/selenzyme2/selenzyPro/uploads", "-datadir", "/selenzyme2/selenzyPro/data", "-logdir", "/selenzyme2/selenzyPro/log", "-d"] 
+CMD ["/selenzyme2/selenzyPro/flaskform.py", "-uploaddir", "/selenzyme2/selenzyPro/uploads", "-datadir", "/selenzyme2/selenzyPro/data", "-logdir", "/selenzyme2/selenzyPro/log", "-frag_size", "2", "-d"] 
 
 EXPOSE 5001
 

@@ -5,7 +5,7 @@ Created on Thu Feb  9 12:20:49 2017
 
 @author: Pablo Carbonell, jerrywzy, Ruth Stoney                       
 
-python gitcode/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads -datadir selenzyme2/selenzyPro/data -logdir selenzyme2/selenzyPro/log -d
+python gitcode2023/selenzyPro/flaskform.py -uploaddir selenzyme2/selenzyPro/uploads -datadir selenzyme2/selenzyPro/data -logdir selenzyme2/selenzyPro/log -frag_size 2 -d
 
 """
 import os, glob, time
@@ -29,17 +29,19 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = set(['txt', 'rxn', 'smi', 'smarts', 'smirks', 'csv', 'fasta', 'fas', 'fa'])
 
 
-def arguments():
+def arguments(args=None):
     parser = argparse.ArgumentParser(description='Options for the webserver')
     parser.add_argument('-uploaddir', default='uploads',
                         help='Upload folder')
     parser.add_argument('-datadir', default='data',
                         help='Data directory for required databases files')
     parser.add_argument('-logdir', default='log',
-                        help='Logging folder')    
+                        help='Logging folder') 
+    parser.add_argument('-frag_size', default='8',
+                        help='max frag size for weighting') 
     parser.add_argument('-d', action='store_true',
                         help='Run in debug mode (no preload)')
-    arg = parser.parse_args()
+    arg = parser.parse_args(args=args)
     return arg
 
 def allowed_file(filename):
@@ -87,8 +89,9 @@ def reset_session():
     app.logger.info( 'New session: %s' % (uniqueid,) )
     session['uniqueid'] = uniqueid
 
-def run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA):
+def run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA, frag_size=7):
     global session
+    print('in run_session, inflection point', frag_size)
     uniqueid = session['uniqueid']
     uniquefolder = session['uniquefolder']
     csvfile = "selenzy_results.csv"
@@ -98,11 +101,13 @@ def run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA):
                                                     app.config['DATA_FOLDER'],  
                                                     uniquefolder,
                                                     csvfile,
+                                                    frag_size=int(frag_size),
                                                     pdir = int(direction),
                                                     host = host,
                                                     fp = fp,
                                                     NoMSA = noMSA,
                                                     pc = app.config['TABLES']
+                                                    
     ) # this creates CSV file in Uploads directory
     if success:
         data = Selenzy.updateScore(file_path(uniqueid, csvfile), session['SCORE'])
@@ -178,7 +183,10 @@ class RestQuery(Resource):
                     args['smarts'] = rxninfo
                 except:
                     pass            
-
+        
+        frag_size = int(args['frag_size'])
+        print('inflection restquery', frag_size)
+            
         if 'smarts' in args:
             """ Submit SMARTS query """
             rxntype = 'smarts'
@@ -203,17 +211,21 @@ class RestQuery(Resource):
                 fp = args['fp']
             else:
                 fp = 'Morgan'
+            if 'frag_size' in args:
+                frag_size = int(args['frag_size'])
+            else:
+                frag_size = 8
             if 'score' in args:
                 session['SCORE'] = Selenzy.seqScore(args['score'])
             try:
                 if isinstance(rxninfo, (list, tuple) ):
                     data = []
                     for instance in rnxinfo:
-                        dat, csvfile, sessionid = run_session(rxntype, instance, targets, direction, host, fp, noMSA)
+                        dat, csvfile, sessionid = run_session(rxntype, instance, targets, direction, host, fp, noMSA, frag_size)
                         data.append(dat)
                     data = pd.DataFrame(data)
                 else:
-                    data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA)
+                    data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA, frag_size)
 
                 return jsonify({'app': 'Selenzy', 'version': '1.3', 'author': 'Synbiochem', 'data': data.to_json()})
             except:
@@ -509,6 +521,7 @@ def show_table():
 
 @app.route('/results', methods=['GET', 'POST'])
 def upload_file():
+    print('upload_file')
     if request.method == 'POST':
         """ The POST request should come from an already initalised session """
         if 'uniqueid' not in session:
@@ -533,12 +546,18 @@ def upload_file():
         targets = request.form['targets']
         host = request.form['host']
         fp = request.form['finger']
+        print('request.form', request.form)
+        # frag_size = int(request.form['frag_size'])
+        # print('frag_size upload_file', frag_size)
+        
         if request.form.get('direction'):
             direction = 1
         if request.form.get('noMSA'):
             noMSA = True
+            
+           
         try:
-            data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA)
+            data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA) # , frag_size
             return render_template('results.html', tables=data.to_html(), csvfile=csvfile, sessionid=sessionid, flags={'fasta': True, 'msa': not noMSA}, score=session['SCORE'])
         except:
             return redirect( url_for("upload_form") )
@@ -567,7 +586,7 @@ def upload_file():
             session['rxninfo'] = rxninfo
             session['rxntype'] = rxntype
             try:
-                data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA)
+                data, csvfile, sessionid = run_session(rxntype, rxninfo, targets, direction, host, fp, noMSA) #, frag_size
                 return render_template('results.html', tables=data.to_html(), csvfile=csvfile, sessionid=sessionid,
                                        flags={'fasta': True, 'msa': not noMSA}, score=session['SCORE'])
             except:
@@ -582,6 +601,11 @@ def results_file(sessionid,filename):
 if __name__== "__main__":  #only run server if file is called directly
 
     arg = arguments()
+
+    # arg = arguments(['-uploaddir', '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/',
+    #     '-datadir',  '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/',
+    #     '-logdir',  '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/log/',
+    #     '-frag_size', '1'] )
 
     app.config['UPLOAD_FOLDER'] = os.path.abspath(arg.uploaddir)
     app.config['LOG_FOLDER'] = os.path.abspath(arg.logdir)
@@ -607,7 +631,8 @@ if __name__== "__main__":  #only run server if file is called directly
     log.addHandler(handler)
     app.logger.addHandler(handler)
 
-    app.logger.info( 'running main\n' )
+    app.logger.info( 'running main!  \n' )
+    print('inflection point flask main', arg.frag_size)
 
-    app.run(host="0.0.0.0",port=5001, debug=app.config['DEBUG'], threaded=True)
+    app.run(host="0.0.0.0", port=5001, debug=app.config['DEBUG'], threaded=True)
 #    app.run(port=5000, debug=True)
