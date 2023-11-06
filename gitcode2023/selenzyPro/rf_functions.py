@@ -86,9 +86,12 @@ class Compounds:
             
             # Morgan fingerprints
             info1 = {}
+            # fpM1 = AllChem.GetMorganFingerprint(
+            #     comp1, size, bitInfo=info1,
+            #     invariants=AllChem.GetConnectivityInvariants(comp1, includeRingMembership=False))
             fpM1 = AllChem.GetMorganFingerprint(
-                comp1, size, bitInfo=info1,
-                invariants=AllChem.GetConnectivityInvariants(comp1, includeRingMembership=False))
+                comp1, size, bitInfo=info1)
+
             
             # get all the atoms in each fragment, returns {fragname:[{atoms}, startnode, radius]}   
             fragAtoms1 = self._get_fragment_atoms(fpM1, info1, atomMap1)

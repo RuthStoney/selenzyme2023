@@ -1,9 +1,12 @@
 selenzyme2/
 data_2023/
 .git.bfg-report/
+figures_tests/
 gitcode2023/selenzyPro/__pycache__/
+gitcode2023/selenzyPro/test_script/
 pw.txt
 bfg-1.14.0.jar
 modification_list.txt
 gitcode2023/selenzyPro/run_from_main.txt
+
 
