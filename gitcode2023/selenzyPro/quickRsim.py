@@ -431,16 +431,6 @@ def arguments(args=None):
 
 
 if __name__ == '__main__':
-    # arg = arguments()
-
-    smi = 'O=C[C@H](O)COP(=O)([O-])[O-]>>O=C[C@H](O)[C@H](O)COP(=O)([O-])[O-]'
-    arg = arguments(['/home/ruth/code/update_selenzyme/run_folder_min_dec/data/', 
-        'Morgan',
-        '-smarts', smi, 
-        '-out', '/home/ruth/code/update_selenzyme/RSquickRsim_new.txt',
-        '-frag_size', '1'] )
-    pc=None
-
-
-    rxn_mapper = RXNMapper()   
+    arg = arguments()
+    rxn_mapper = RXNMapper()     
     run(arg, pc, rxn_mapper)

@@ -207,8 +207,7 @@ def get_morg(mol, inchi=0):
 
     Chem.SanitizeMol(mol)
     info1 = {}
-    #fpM = AllChem.GetMorganFingerprint(mol, 8, bitInfo=info1, invariants=AllChem.GetConnectivityInvariants(mol, includeRingMembership=False))
-    fpM = AllChem.GetMorganFingerprint(mol, 8, bitInfo=info1)
+    fpM = AllChem.GetMorganFingerprint(mol, 8, bitInfo=info1, invariants=AllChem.GetConnectivityInvariants(mol, includeRingMembership=False))
     atomMap1 = get_atoms(mol)
     return fpM, Chem.MolToSmiles(mol), mol.GetNumAtoms(), info1, atomMap1
 
@@ -469,8 +468,8 @@ def run(raw_data_folder, data_folder):
     for k, v in aam_issues.items(): print(k,  '\t',len(v), '\t', round( (len(v)/total_reactions)*100 ,3) , '%' )
 
     # save to npz file - full compounds
-    outfolderM = data_folder / 'Morgan2/'
-    outfolderM_RF = data_folder / 'Morgan2/RF/'
+    outfolderM = data_folder / 'Morgan/'
+    outfolderM_RF = data_folder / 'Morgan/RF/'
 
     if not os.path.exists(outfolderM): os.makedirs(outfolderM)
     if not os.path.exists(outfolderM_RF): os.makedirs(outfolderM_RF)
@@ -509,8 +508,8 @@ def arguments(args=None):
 if __name__ == '__main__':
     arg = arguments()
     
-#    arg = arguments(['/home/ruth/code/update_selenzyme/selenzyme_aug2023/data_2023_t/',
-#        '/home/ruth/code/update_selenzyme/run_folder_min_dec/raw_data_update/'] )
+    arg = arguments(['/home/ruth/code/update_selenzyme/selenzyme_aug2023/data_2023_t/',
+        '/home/ruth/code/update_selenzyme/run_folder_min_dec/raw_data_update/'] )
     
     
     
