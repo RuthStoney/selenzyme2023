@@ -111,7 +111,11 @@ class ReactingAtoms:
                 smile = '.'.join(prodSmiles) + '>>' + '.'.join(subSmiles)
                 reactingAtoms, conf = self._run_rxnMapper(smile, prodMols, subMols, rxn_mapper)
             
-            return reactingAtoms, conf
+            if max([len(x) for x in reactingAtoms.values()]) == 0:
+                print('no reacting atoms found')
+                return([None, 0])
+            else:
+                return reactingAtoms, conf
     
         except RuntimeError:
             print('AAM failed query - compound too large')
@@ -386,8 +390,8 @@ class ReactingFragments:
     def _log_fun_weight(self, c):   
         # log function 
         weights1 = []
-        k = 0.75
-        i = 3
+        k = 0.5
+        i = 5
         for x in list(range(0, c + 1)):
             weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
         return ([x / sum(weights1) for x in weights1])

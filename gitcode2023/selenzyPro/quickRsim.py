@@ -374,18 +374,26 @@ def run(arg, pc, rxn_mapper):
                     # forward score
                     if S1 >= S2:
                         S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('s1', 's2')] )
-                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('p1', 'p2')] )                       
-                        if (sum(S_RF.values())+sum(P_RF.values()))>0: 
-                            RF_score = (sum(S_RF.values())+sum(P_RF.values())) / len(queryRF) #(len(S_RF) + len(P_RF))
-                        else: RF_score=0
+                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('p1', 'p2')] )     
                     else:
                         # reverse score
                         S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('s1', 'p2')])
                         P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('p1', 's2')])
-                        if (sum(S_RF.values())+sum(P_RF.values()))>0: 
-                            # geometric mean 
-                            RF_score = math.sqrt(mean(S_RF.values()) * mean(P_RF.values()))
-                        else: RF_score=0
+
+
+                    if len(S_RF.values()) == 0 and len(P_RF.values()) == 0:
+                        RF_score = float("Nan")
+                    elif len(S_RF.values()) == 0:
+                        RF_score = math.sqrt(mean(P_RF.values()))/2
+                    elif len(P_RF.values()) == 0:
+                        RF_score = math.sqrt(mean(S_RF.values()))/2                       
+                    elif (sum(S_RF.values())+sum(P_RF.values()))>0: 
+                        RF_score = math.sqrt(mean(S_RF.values()) * mean(P_RF.values()))
+                    else: RF_score=0.0
+
+                    if type(RF_score) != float:
+                        print('found none 1', S_RF.values(), P_RF.values())    
+
                 except:
                     RF_score = float("Nan")
                 
