@@ -4,6 +4,17 @@
 Created on Tue Feb  7 10:53:03 2017
 
 @author: jerrywzy, Pablo Carbonell, Ruth Stoney
+
+sudo python selenzy.py \
+    '[H]Oc1c(OC([H])([H])[H])c([H])c(C([H])=C([H])C(=O)OC2([H])OC([H])(C([H])([H])O[H])C([H])(O[H])C([H])(O[H])C2([H])O[H])c([H])c1OC([H])([H])[H]>>[H]OC(=O)C([H])([H])C([H])(OC(=O)C([H])=C([H])c1c([H])c(OC([H])([H])[H])c(O[H])c(OC([H])([H])[H])c1[H])C(=O)O[H].[H]OC([H])([H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])(O[H])C([H])=O' \
+    /home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/ \
+    /home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/ \
+    -outfile selenzy_results.csv \
+    -frag_size 3
+
+
+
+
 """
 
 
@@ -352,11 +363,11 @@ def readRxnCons(consensus):
         
     return (MnxDir)   
     
-def getMnxSim(rxnInput, datadir, outdir, rxnm, drxn=0, fp='Morgan', pc=None):
+def getMnxSim(rxnInput, datadir, outdir, rxnm, drxn=0, fp='Morgan', pc=None, frag_size=8):
     """ Commmand line arguments of quickRsim """
     args = [datadir, fp] + rxnInput + ['-out', os.path.join(outdir,'results_quickRsim.txt')]
 
-    quickRsim.run( quickRsim.arguments(args), pc, rxnm)
+    quickRsim.run( quickRsim.arguments(args), pc, rxnm, frag_size)
     MnxSim = {}
     
     try:
@@ -889,7 +900,7 @@ def conservation_properties(fastaFile):
     cons = doMSA(fastaFile,  os.path.dirname(fastaFile))
     return cons
 
-def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', NoMSA=True, pc=None, fp='Morgan'):
+def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', NoMSA=True, pc=None, fp='Morgan', frag_size = 8):
     # targ, datadir, outdir, csvfilename, pdir, host, NoMSA, pc, fp = arg.tar, arg.datadir, arg.outdir, arg.outfile, 'dc.csv', '83333',  True,  None, 'Morgan'
 
     rxnm = RXNMapper()    
@@ -924,7 +935,7 @@ def analyse(rxnInput, targ, datadir, outdir, csvfilename, pdir=0, host='83333', 
     
     print ("Running quickRsim...pdir =", pdir)
     try:
-        (MnxSim, MnxDirPref, MnxDirUsed, Smiles, EcNumber, MnxSimRF, SumScore) = getMnxSim(rxnInput, datadir, outdir, rxnm, pdir, fp, pc)
+        (MnxSim, MnxDirPref, MnxDirUsed, Smiles, EcNumber, MnxSimRF, SumScore) = getMnxSim(rxnInput, datadir, outdir, rxnm, pdir, fp, pc, frag_size)
     except:
         return False, pc
 
@@ -1169,12 +1180,21 @@ def arguments(args=None):
                         help='Input is a reaction SMARTS file')
     parser.add_argument('-host', type=str, default='83333',
                         help='Host organism taxon id [default: E. coli]')
+    parser.add_argument('-frag_size', type=str, default=8,
+                        help='Maximum fragment size for weights')
     arg = parser.parse_args(args=args)
     return arg
 
 
 if __name__ == '__main__':
     arg = arguments()
+
+    # arg = arguments(['C=C(OP(=O)([O-])[O-])C(=O)[O-]>>O=C([O-])C(=O)C[C@@H](O)[C@H](O)[C@H](O)COP(=O)([O-])[O-]', 
+    #     '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/',
+    #     '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/',
+    #     '-outfile', 'selenzy_results.csv' ,
+    #     '-frag_size', '3'] ) 
+
     
     newpath = os.path.join(arg.outdir)
     if not os.path.exists(newpath):
@@ -1188,5 +1208,7 @@ if __name__ == '__main__':
         rxnInput = ['-smartsfile', arg.rxn]
     else:
         rxnInput = ['-rxn', arg.rxn]
+    
+    print('frag_size selenzy main', arg.frag_size)
 
-    analyse(rxnInput, arg.tar, arg.datadir, arg.outdir, arg.outfile, arg.d, arg.host, NoMSA=arg.NoMSA)
+    analyse(rxnInput, arg.tar, arg.datadir, arg.outdir, arg.outfile, arg.d, arg.host, NoMSA=arg.NoMSA, frag_size = arg.frag_size)

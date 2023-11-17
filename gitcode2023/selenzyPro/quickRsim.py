@@ -14,14 +14,6 @@ python quickRsim.py data/reac_prop.tsv data/metanetx.fs -rid MNXR3215 -chem data
 python quickRsim.py data/reac_prop.tsv data/metanetx.fs -rxn rhea15870.rxn -th 0.9
 
 
-# smi = 'C[C@]12CC[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO>>C[C@]12C[C@H](O)[C@H]3[C@@H](CCC4=CC(=O)CC[C@@]43C)[C@@H]1CC[C@]2(O)C(=O)CO'    
-# fp = '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/data/'
-# arg = arguments([fp, 
-#     'Morgan',
-#     '-smarts', smi, 
-#     '-out', '/home/ruth/code/update_selenzyme/selenzyme_2023/selenzyme2/selenzyPro/uploads/RSquickRsim_new.txt'] )
-# pc=None
-
 '''
 
 from __future__ import print_function
@@ -264,7 +256,7 @@ def bulkTani(targetFp, fp, fpn):
     return dist
 
 
-def run(arg, pc, rxn_mapper):
+def run(arg, pc, rxn_mapper, frag_size):
 
     ### Data processing 
     # read in the data
@@ -334,6 +326,7 @@ def run(arg, pc, rxn_mapper):
     
         # AAM using RXNmapper 
         reactingAtoms, conf = reacting_atoms.get_reacting_atoms(subMols, prodMols, subSmiles, prodSmiles, rxn_mapper)  
+        print('react atoms' , reactingAtoms)
  
         # measure compound similarities
         print('\nCompound-compound distances')
@@ -381,19 +374,41 @@ def run(arg, pc, rxn_mapper):
                     # calculate the scores for the RFs
                     # forward score
                     if S1 >= S2:
-                        S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('s1', 's2')] )
-                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('p1', 'p2')] )                       
-                        if (sum(S_RF.values())+sum(P_RF.values()))>0: 
-                            RF_score = (sum(S_RF.values())+sum(P_RF.values())) / len(queryRF) #(len(S_RF) + len(P_RF))
-                        else: RF_score=0
+                        S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('s1', 's2')], frag_size )
+                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('p1', 'p2')], frag_size )                       
+                        if len(S_RF.values()) == 0 and len(P_RF.values()) == 0:
+                            RF_score = float("Nan")
+                        elif len(S_RF.values()) == 0:
+                            RF_score = math.sqrt(mean(P_RF.values()))/2
+                        elif len(P_RF.values()) == 0:
+                            RF_score = math.sqrt(mean(S_RF.values()))/2                       
+                        elif (sum(S_RF.values())+sum(P_RF.values()))>0: 
+                            # RF_score = (sum(S_RF.values())+sum(P_RF.values())) / len(queryRF) #(len(S_RF) + len(P_RF))
+                            # print(S_RF.values(), P_RF.values(), math.sqrt(mean(S_RF.values()) * mean(P_RF.values())))
+                            RF_score = math.sqrt(mean(S_RF.values()) * mean(P_RF.values()))
+                        else: RF_score=0.0
+                        
+                        if type(RF_score) != float:
+                            print('found none 1', S_RF.values(), P_RF.values())
                     else:
                         # reverse score
-                        S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('s1', 'p2')])
-                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('p1', 's2')])
-                        if (sum(S_RF.values())+sum(P_RF.values()))>0: 
+                        S_RF = reacting_fragments.generate_RFscore2(list(s1.keys()), queryRF, queryDists, p2, r2, rfDict, rfdist, subProdPairs[('s1', 'p2')], frag_size)
+                        P_RF = reacting_fragments.generate_RFscore2(list(p1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('p1', 's2')], frag_size)
+                        if len(S_RF.values()) == 0 and len(P_RF.values()) == 0:
+                            RF_score = float("Nan")
+                        elif len(S_RF.values()) == 0:
+                            RF_score = math.sqrt(mean(P_RF.values()))/2
+                        elif len(P_RF.values()) == 0:
+                            RF_score = math.sqrt(mean(S_RF.values()))/2   
+                        elif (sum(S_RF.values())+sum(P_RF.values()))>0: 
                             # geometric mean 
                             RF_score = math.sqrt(mean(S_RF.values()) * mean(P_RF.values()))
-                        else: RF_score=0
+                        else: RF_score=0.0
+                        
+                        if type(RF_score) != float:
+                            print('found none 2', S_RF.values(), P_RF.values())
+                            
+                    if RF_score >0.6: print(r2, RF_score, S_RF.values(), P_RF.values())
                 except:
                     RF_score = float("Nan")
                 
@@ -430,6 +445,8 @@ def arguments(args=None):
                         help='Output results in .txt file with highest similarity score from both forwards and backwards reactions, please specify file name')
     parser.add_argument('-marvin', 
                         help='Call marvin if needed (skip if fails)')
+    parser.add_argument('-frag_size', default='8',
+                        help='max frag size for weighting') 
 
     if args is not None:
         arg = parser.parse_args(args=args)
@@ -440,5 +457,14 @@ def arguments(args=None):
 
 if __name__ == '__main__':
     arg = arguments()
+
+    # smi = 'O=C[C@H](O)COP(=O)([O-])[O-]>>O=C[C@H](O)[C@H](O)COP(=O)([O-])[O-]'
+    # arg = arguments(['/home/ruth/code/update_selenzyme/run_folder_min_dec/data/', 
+    #     'Morgan',
+    #     '-smarts', smi, 
+    #     '-out', '/home/ruth/code/update_selenzyme/RSquickRsim_new.txt',
+    #     '-frag_size', '1'] )
+    # pc=None
+    
     rxn_mapper = RXNMapper()     
-    run(arg, pc, rxn_mapper)
+    run(arg, pc, rxn_mapper, int(arg.frag_size))

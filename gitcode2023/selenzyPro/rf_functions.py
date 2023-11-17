@@ -86,9 +86,13 @@ class Compounds:
             
             # Morgan fingerprints
             info1 = {}
+            # fpM1 = AllChem.GetMorganFingerprint(
+            #     comp1, size, bitInfo=info1,
+            #     invariants=AllChem.GetConnectivityInvariants(comp1, includeRingMembership=False))
+ 
+            print('morg circular false')
             fpM1 = AllChem.GetMorganFingerprint(
-                comp1, size, bitInfo=info1,
-                invariants=AllChem.GetConnectivityInvariants(comp1, includeRingMembership=False))
+                comp1, size, bitInfo=info1)
             
             # get all the atoms in each fragment, returns {fragname:[{atoms}, startnode, radius]}   
             fragAtoms1 = self._get_fragment_atoms(fpM1, info1, atomMap1)
@@ -111,7 +115,12 @@ class ReactingAtoms:
                 smile = '.'.join(prodSmiles) + '>>' + '.'.join(subSmiles)
                 reactingAtoms, conf = self._run_rxnMapper(smile, prodMols, subMols, rxn_mapper)
             
-            return reactingAtoms, conf
+
+            if max([len(x) for x in reactingAtoms.values()]) == 0:
+                print('no reacting atoms found')
+                return([None, 0])
+            else:
+                return reactingAtoms, conf
     
         except RuntimeError:
             print('AAM failed query - compound too large')
@@ -241,7 +250,7 @@ class ReactingFragments:
         return(bi1_filtered, fragDist1)
    
 
-    def generate_RFscore2(self, subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs):  
+    def generate_RFscore2(self, subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs, m=2):  
         # subSmiles, queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs = list(s1.keys()), queryRF, queryDists, s2, r2, rfDict, rfdist, subProdPairs[('s1', 's2')] 
         
         subList = list(subSmiles)
@@ -301,11 +310,16 @@ class ReactingFragments:
            
         weightedScores = {}
         for pair, scores in unweightedScores.items():
-            weights = self._log_fun_weight(max(scores.keys()))
+            weights = self._log_fun_weight(max(scores.keys()), m)
             weightedScores[pair] = sum([scores[x] * weights[x] 
                                         if x in scores and scores[x] > 0 else 0 
                                         for x in list(range(0, max(scores.keys()) + 1))])
-    
+            if 1>weightedScores[pair]>0.8:
+                print('\nscores', scores)
+                print('weights', weights)
+                print('size', max(scores.keys()) )
+                print('weighted score', weightedScores[pair])
+   
         return(weightedScores)
 
     # getAtomFragments
@@ -383,14 +397,111 @@ class ReactingFragments:
             d2[key].append(value)
         return d2
 
-    def _log_fun_weight(self, c):   
+    # def 1_log_fun_weight(self, c):   
+    #     # log function 
+    #     weights1 = []
+    #     k = 0.75
+    #     i = 3
+    #     for x in list(range(0, c + 1)):
+    #         weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+    #     return ([x / sum(weights1) for x in weights1])
+
+
+    # def log_fun_weight(i, k, c,  m=8):   
+    #     # log function 
+    #     weights1 = []
+    #     # k = 0.75
+    #     # i = 1 # 3
+    #     if m < c:
+    #         for x in list(range(0, m + 1)):
+    #             weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+    #         weights1 = weights1 + [0]*(c - m)
+    #     else:
+    #         for x in list(range(0, c + 1)):
+    #             weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+    #     return ([x / sum(weights1) for x in weights1])
+
+    # def 1_log_fun_weight(self, c, m=8):   
+    #     # log function 
+    #     weights1 = []
+    #     k = 0.75
+    #     i = 0 # 3
+    #     if m < c:
+    #         for x in list(range(0, m + 1)):
+    #             weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+    #         weights1 = weights1 + [0]*(c - m)
+    #     else:
+    #         for x in list(range(0, c + 1)):
+    #             weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+    #     return ([x / sum(weights1) for x in weights1])
+
+
+    def _log_fun_weight(self, c, inflection=5):  
+        
         # log function 
         weights1 = []
-        k = 0.75
-        i = 3
+        k = 0.5
+        # print('size ', c, 'slope:', k, 'inf', inflection)
+        # if c >0: print('c', c, '   i', i, '   k', k)
+        
         for x in list(range(0, c + 1)):
-            weights1.append((1 / (1 + math.e ** (k * (x - i)))) + 0)
+            weights1.append((1 / (1 + math.e ** (k * (x - inflection)))) + 0)
+            
         return ([x / sum(weights1) for x in weights1])
+
+
+
+def log_fun_weight(c, inflection, slope):   
+    # log function 
+    weights1 = []
+    for x in list(range(0, c + 1)):
+        weights1.append((1 / (1 + math.e ** (slope * (x - inflection)))) + 0)
+        
+    return ([x / sum(weights1) for x in weights1])
+
+
+# def log_f(inflection, slope):
+#     # log function 
+#     weights1 = []
+    
+#     for x in list(range(0, 9)):
+#         weights1.append(1 / (1 + math.e ** (slope * (x - inflection) )  ))
+#     return (weights1)
+
+
+# plt.plot([x/sum(log_f(0, 0.5)) for x in log_f(0, 0.5)], label = "inf 0")
+# plt.plot([x/sum(log_f(1, 0.5)) for x in log_f(1, 0.5)], label = "inf 1")
+# plt.plot([x/sum(log_f(3, 0.5)) for x in log_f(3, 0.5)], label = "inf 3")
+# plt.plot([x/sum(log_f(5, 0.5)) for x in log_f(5, 0.5)], label = "inf 5")
+# plt.legend()
+# plt.show()
+
+# plt.plot([x/sum(log_f(0, 1)) for x in log_f(0, 1)], label = "inf 0")
+# plt.plot([x/sum(log_f(1, 1)) for x in log_f(1, 1)], label = "inf 1")
+# plt.plot([x/sum(log_f(3, 1)) for x in log_f(3, 1)], label = "inf 3")
+# plt.plot([x/sum(log_f(5, 1)) for x in log_f(2, 1)], label = "inf 5")
+# plt.legend()
+# plt.show()
+
+# plt.plot([x/sum(log_f(0, 2)) for x in log_f(0, 2)], label = "inf 0")
+# plt.plot([x/sum(log_f(1, 2)) for x in log_f(1, 2)], label = "inf 1")
+# plt.plot([x/sum(log_f(3, 2)) for x in log_f(3, 2)], label = "inf 3")
+# plt.plot([x/sum(log_f(5, 2)) for x in log_f(5, 2)], label = "inf 5")
+# plt.legend()
+# plt.show()
+
+import matplotlib.pyplot as plt
+fig, axs = plt.subplots(3, 3,  figsize=(14, 14))
+for i1, size in enumerate([4, 6, 8]):
+    for i2, i in enumerate([0.5, 1, 2]):
+        axs[i1, i2].plot([x/sum(log_fun_weight(size, 0, i)) for x in log_fun_weight(size, 0, i)], label = "inf 0")
+        axs[i1, i2].plot([x/sum(log_fun_weight(size, 1, i)) for x in log_fun_weight(size, 1, i)], label = "inf 1")
+        axs[i1, i2].plot([x/sum(log_fun_weight(size, 2, i)) for x in log_fun_weight(size, 3, i)], label = "inf 3")
+        axs[i1, i2].plot([x/sum(log_fun_weight(size, 5, i)) for x in log_fun_weight(size, 5, i)], label = "inf 5")
+        axs[i1, i2].legend()
+        axs[i1, i2].set_title('size: '+ str(size) + '   slope: '+ str(i))
+        #axs[i1, i2].show()
+
 
 
 if __name__ == "__main___":

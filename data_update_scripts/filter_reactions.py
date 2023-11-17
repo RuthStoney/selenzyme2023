@@ -15,23 +15,28 @@ from collections import Counter
 from statistics import median
 import argparse
 
-# data_folder     = Path('/home/ruth/code/update_selenzyme/selenzyme_update/data_google_cloud_edited/data_untouched2/')
-# raw_data_folder = Path('/home/ruth/code/update_selenzyme/selenzyme_update/data_google_cloud_edited/data_untouched2/')
+data_folder     = Path('/home/ruth/code/update_selenzyme/selenzyme_update/data_google_cloud_edited/data_untouched2/')
+raw_data_folder = Path('/home/ruth/code/update_selenzyme/selenzyme_update/data_google_cloud_edited/data_untouched2/')
 
-# chem_prop = pd.read_csv(raw_data_folder / 'chem_prop.tsv', comment='#', sep='\t')
-# chem_prop.columns = ['#ID', 'name', 'formula', 'charge', 'mass', 'InChI', 'InChIKey', 'SMILES']
-# reac_prop = pd.read_csv(raw_data_folder / 'reac_prop.tsv',  comment='#', sep='\t')
-# reac_prop.columns = ['#ID', 'mnx_equation', 'eq', 'is_balanced', 'classifs',  'reference']
+chem_prop = pd.read_csv(raw_data_folder / 'chem_prop.tsv', comment='#', sep='\t')
+chem_prop.columns = ['#ID', 'name', 'formula', 'charge', 'mass', 'InChI', 'InChIKey', 'SMILES']
+reac_prop = pd.read_csv(raw_data_folder / 'reac_prop.tsv',  comment='#', sep='\t')
+reac_prop.columns = ['#ID', 'mnx_equation', 'eq', 'is_balanced', 'classifs',  'reference']
 
 
 
 def run(raw_data_folder, data_folder):
+    '
+    data_folder     = Path('/home/ruth/code/update_selenzyme/selenzyme_2023/compressed_data/data_2023/')
+    raw_data_folder = Path('/home/ruth/code/update_selenzyme/run_folder_min_dec/raw_data_update/')
+
 
     chem_prop = pd.read_csv(raw_data_folder / 'chem_prop.tsv', comment='#', sep='\t')
     chem_prop.columns = ['#ID', 'name', 'reference', 'formula', 'charge', 'mass', 'InChI', 'InChIKey', 'SMILES']
     reac_prop = pd.read_csv(raw_data_folder / 'reac_prop.tsv',  comment='#', sep='\t')
     reac_prop.columns = ['#ID', 'mnx_equation', 'reference', 'classifs', 'is_balanced', 'is_transport']
 
+    #reac_smi = pd.read_csv(data_folder / 'reac_smi.csv',  sep=',')
 
 
     reac_seqs = data_folder / 'reac_seqs.tsv'
@@ -139,7 +144,22 @@ def run(raw_data_folder, data_folder):
             print()
             for x in range_list:
                 print(x[0], '-', x[1]-1, '\t', sum([hist[x] for x in list(range(x[0], x[1]))]), round(sum([hist[y] for y in list(range(x[0], x[1]))])/len(reaction_compounds4), 3) )
-     
+                
+            reac_smi = pd.read_csv(data_folder / 'reac_smi.csv', skiprows=0, header=None, names=['mnxr', 'smiles'])
+            reac_smi2 = reac_smi[reac_smi.mnxr.isin(reac_prop2['#ID'])]
+            print('unique smiles', len(set(reac_smi2.smiles)))
+        
+        # unique_reactions = []
+        # problems = []
+        # for i, row in reac_prop2.iterrows():
+        #     x = set([y.split('@')[0] for y in row.mnx_equation.split('=')[0].split() if 'MNXM' in y] )
+        #     y = set([y.split('@')[0] for y in row.mnx_equation.split('=')[1].split() if 'MNXM' in y] )
+        #     if [x, y] not in unique_reactions:
+        #         unique_reactions.append([x, y])
+        #     else:
+        #         problems.append(row['#ID'])   
+        
+        # print("unique reactions", len(unique_reactions), 'repeats', len(problems))
           
                 
     # make file to filter the input for make_reac_seqs.py     
@@ -155,8 +175,88 @@ def run(raw_data_folder, data_folder):
             for k in reaction_compounds2.keys():
                 f.write(k + '\n' )
             
+        unique_reactions = []
+'
+
+# reac_prop2_old = reac_prop2
+# reac_seqs_old = reac_seqs2
+
+metacyc = reac_prop2[reac_prop2.source == 'metacycR']
+metacyc_old = reac_prop2_old[reac_prop2_old.source == 'metacyc']
+
+# for the old data make an EC: mnxr dictionary (inc null)
+# for the new data make an EC: mnxr dictionary
+
+ec_mnxr_old = {}
+for i, row in metacyc_old.iterrows():
+    for ec in re.split(r'[;|]', str(row.classifs)):
+        if ec not in ec_mnxr_old:
+            ec_mnxr_old[ec] = set()
+        ec_mnxr_old[ec].add(row['#ID'])
+        
+ec_all = {}
+ec_mnxr = {}
+for i, row in reac_seqs.iterrows():
+    for ec in re.split(r'[;|]', str(row.ec)):
+        if ec not in ec_all:
+            ec_all[ec] = set()
+        ec_all[ec].add(row['mnxr'])
+        
+        if 'metacyc' in row.ref:
+            if ec not in ec_mnxr:
+                ec_mnxr[ec] = set()
+            ec_mnxr[ec].add(row['mnxr'])            
+
+lost_ecs = {k: v for k, v in ec_mnxr_old.items() if k not in ec_all}
+lost_ecs_clean = {k: v for k, v in ec_mnxr_old.items() if k not in ec_all and bool(re.match('[\d/.]+$', k)) and len(k.split('.'))==4}
+lost_mnxr = set([x for v in lost_ecs.values() for x in v])
+lost_mnxr_clean = set([x for v in lost_ecs_clean.values() for x in v ])
+
+print('lost ecs:', len(lost_ecs), '      lost ecs (no letters):', len(lost_ecs_clean))
+print('lost mnxr:', len(lost_mnxr), '     lost mnxr (clean):', len(lost_mnxr_clean))
 
 
+lost_ecs = {k: v for k, v in ec_mnxr_old.items() if k not in ec_mnxr}
+lost_ecs_clean = {k: v for k, v in ec_mnxr_old.items() if k not in ec_mnxr and bool(re.match('[\d/.]+$', k)) and len(k.split('.'))==4}
+lost_mnxr = set([x for v in lost_ecs.values() for x in v])
+lost_mnxr_clean = set([x for v in lost_ecs_clean.values() for x in v ])
+
+print('lost ecs:', len(lost_ecs), '      lost ecs (no letters):', len(lost_ecs_clean))
+print('lost mnxr:', len(lost_mnxr), '     lost mnxr (clean):', len(lost_mnxr_clean))
+
+
+    
+
+covered_ecs = [ y for x in reac_seqs.ec for y in x.split(';')]
+covered_ecs_old = [ y for x in reac_seqs_old.ec for y in str(x).split(';')]
+
+metacyc_lost_set = set(metacyc_old['#ID']) - set(metacyc['#ID'])
+
+reac_seqs_old2 = reac_seqs_old[reac_seqs_old.mnxr.isin(metacyc_lost_set)]
+#reac_seqs_old2['ecs'] = [tuple(str(x).split(';')) for x in reac_seqs_old2.ecs]
+
+metacyc_lost_ecs = {x: set(z for y in reac_seqs_old2.ec[reac_seqs_old2.mnxr == x] for z in str(y).split('|') ) for x in metacyc_lost_set }
+print('metacyc lost reactions', len(metacyc_lost_ecs))
+metacyc_lost_ecs2 = {k:v for k, v in metacyc_lost_ecs.items() if len(v.intersection(covered_ecs)) == 0}
+
+
+metacyc_ecs = {x: str(metacyc_old.classifs[metacyc_old['#ID'] == x].values[0]).split(';') for x in metacyc_lost_set}
+metacyc_ecs_lost = {k: v for k, v in metacyc_ecs.items() if v != ['nan'] and  }
+
+check_ecs_old = metacyc_old.classifs[metacyc_old['#ID'].isin(metacyc_lost_set) ].values
+check_ecs_old = set([ y for x in check_ecs_old for y in str(x).split(';')])
+print('ecs from missing metacyc', len(check_ecs_old))
+
+check_ecs = set([ y for x in reac_prop2.classifs for y in str(x).split(';')])
+lost_ecs = check_ecs_old - check_ecs
+print('lost ecs from missing metacyc', len(lost_ecs))
+lost_ecs_4d = [x for x in lost_ecs if len(x.split('.'))==4 and bool(re.match('[\d/.]+$', x)) ]
+print('lost ecs from missing metacyc', len(lost_ecs_4d))
+
+
+
+ll = [ x for x in lost_ecs_4d if x not in covered_ecs ]
+ll_old = [ x for x in lost_ecs_4d if x not in covered_ecs_old ]
 
 def arguments(args=None):
     parser = argparse.ArgumentParser(description='SeqFind script for Selenzy')
